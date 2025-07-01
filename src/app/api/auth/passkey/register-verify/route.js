@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyRegistrationResponse } from '@simplewebauthn/server';
-import { supabaseServer } from '../../../../lib/supabase-server';
+import { supabaseServer } from '@/lib/supabase-server';
 
 export async function POST(request) {
   try {
@@ -58,8 +58,22 @@ export async function POST(request) {
 
     // Verify the registration
     const isDevelopment = process.env.NODE_ENV === 'development';
-    const rpID = isDevelopment ? 'localhost' : (process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : 'localhost');
-    const expectedOrigin = isDevelopment ? 'http://localhost:3001' : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001');
+    
+    // Get the current request URL to determine the domain and origin
+    const requestUrl = new URL(request.url);
+    const currentDomain = requestUrl.hostname;
+    const currentOrigin = requestUrl.origin;
+    
+    // For development, use localhost. For production, use the actual domain/origin
+    const rpID = isDevelopment ? 'localhost' : currentDomain;
+    
+    // Determine the correct localhost port
+    let devOrigin = 'http://localhost:3000'; // Default Next.js port
+    if (isDevelopment && currentOrigin.includes('localhost')) {
+      devOrigin = currentOrigin; // Use the actual localhost origin
+    }
+    
+    const expectedOrigin = isDevelopment ? devOrigin : currentOrigin;
 
     console.log('🔍 Verification config:', { rpID, expectedOrigin, isDevelopment });
 
@@ -88,8 +102,16 @@ export async function POST(request) {
     console.log('✅ WebAuthn verification successful');
 
     // Store the credential
+    console.log('🔑 Credential IDs for storage:', {
+      fromRegistrationInfo: verification.registrationInfo.credentialID,
+      fromCredentialResponse: credential.id,
+      rawId: credential.rawId,
+      match: verification.registrationInfo.credentialID === credential.id
+    });
+    
     const credentialData = {
       credentialId: verification.registrationInfo.credentialID,
+      credentialIdBase64: credential.id, // Store both for comparison
       publicKey: Buffer.from(verification.registrationInfo.credentialPublicKey).toString('base64'),
       counter: verification.registrationInfo.counter,
       deviceName: deviceName || 'Unknown Device',

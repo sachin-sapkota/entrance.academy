@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin, supabase } from '@/lib/supabase-server';
+import { supabaseServer } from '@/lib/supabase-server';
+import { supabase } from '@/lib/supabase';
 
 // Helper function to verify admin access
 async function verifyAdminAccess(request) {
@@ -19,7 +20,7 @@ async function verifyAdminAccess(request) {
     }
 
     // Check if user is admin
-    const { data: profile, error: profileError } = await supabaseAdmin
+    const { data: profile, error: profileError } = await supabaseServer
       .from('users')
       .select('role')
       .eq('id', user.id)
@@ -41,7 +42,7 @@ export async function GET(request) {
   try {
     // For GET, we'll allow both authenticated users and public access
     // since upcoming tests might be visible to students too
-    const { data: tests, error } = await supabaseAdmin
+    const { data: tests, error } = await supabaseServer
       .from('test_configurations')
       .select(`
         *,
@@ -105,7 +106,7 @@ export async function POST(request) {
       ...testData
     };
 
-    const { data: newTest, error } = await supabaseAdmin
+    const { data: newTest, error } = await supabaseServer
       .from('test_configurations')
       .insert(defaultTestData)
       .select()
@@ -146,7 +147,7 @@ export async function PUT(request) {
       }, { status: 400 });
     }
 
-    const { data: updatedTest, error } = await supabaseAdmin
+    const { data: updatedTest, error } = await supabaseServer
       .from('test_configurations')
       .update(updateData)
       .eq('id', id)
@@ -189,7 +190,7 @@ export async function DELETE(request) {
       }, { status: 400 });
     }
 
-    const { error } = await supabaseAdmin
+    const { error } = await supabaseServer
       .from('test_configurations')
       .delete()
       .eq('id', id);

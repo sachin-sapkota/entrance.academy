@@ -137,11 +137,35 @@ export const registerPasskey = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No authenticated user');
 
+    // Find the correct user ID (might be different from auth user ID)
+    let targetUserId = user.id;
+    
+    // Check if user exists with auth ID
+    const { data: authUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    // If not found, try email lookup
+    if (!authUser && user.email) {
+      const { data: emailUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', user.email)
+        .single();
+      
+      if (emailUser) {
+        targetUserId = emailUser.id;
+        console.log('🔄 Using email-based user ID for passkey registration:', targetUserId);
+      }
+    }
+
     // Generate registration options from server
     const response = await fetch('/api/auth/passkey/register-options', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id })
+      body: JSON.stringify({ userId: targetUserId })
     });
 
     if (!response.ok) {
@@ -165,7 +189,7 @@ export const registerPasskey = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        userId: user.id,
+        userId: targetUserId,
         credential,
         deviceName: getDeviceName()
       })
@@ -193,6 +217,8 @@ export const registerPasskey = async () => {
 // WebAuthn/Passkey Authentication
 export const authenticateWithPasskey = async () => {
   try {
+    console.log('🔐 Starting passkey authentication...');
+    
     // Generate authentication options from server
     const response = await fetch('/api/auth/passkey/auth-options', {
       method: 'GET'
@@ -200,28 +226,109 @@ export const authenticateWithPasskey = async () => {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message);
+      throw new Error(error.message || `HTTP ${response.status}`);
     }
 
     const options = await response.json();
+    console.log('📝 Authentication options received:', options);
 
     // Start WebAuthn authentication
     const credential = await startAuthentication(options);
+    console.log('🔑 WebAuthn authentication completed:', credential);
 
     // Verify authentication with server
+    console.log('🌐 Making verification request to:', '/api/auth/passkey/auth-verify');
+    console.log('📦 Request payload:', { 
+      credential: { id: credential.id, type: credential.type },
+      challenge: options._challenge || options.challenge
+    });
+    
     const verifyResponse = await fetch('/api/auth/passkey/auth-verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ credential })
+      body: JSON.stringify({ 
+        credential,
+        challenge: options._challenge || options.challenge
+      })
     });
+    
+    console.log('📡 Response status:', verifyResponse.status, verifyResponse.statusText);
 
     if (!verifyResponse.ok) {
       const error = await verifyResponse.json();
-      throw new Error(error.message);
+      throw new Error(error.message || `HTTP ${verifyResponse.status}`);
     }
 
     const result = await verifyResponse.json();
-    return { success: true, user: result.user, error: null };
+    console.log('✅ Passkey verification successful:', result);
+
+    if (result.success && result.user) {
+      // Create a Supabase session for the authenticated user
+      console.log('🔄 Creating Supabase session for passkey user...');
+      
+      try {
+        const sessionResponse = await fetch('/api/auth/passkey/create-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userEmail: result.user.email })
+        });
+
+        if (!sessionResponse.ok) {
+          const sessionError = await sessionResponse.json();
+          throw new Error(sessionError.error || 'Failed to create session');
+        }
+
+        const sessionData = await sessionResponse.json();
+        console.log('📧 Session link generated, redirecting user...');
+
+        // Use the magic link to sign in the user
+        if (sessionData.authUrl) {
+          // Extract the token from the magic link
+          const url = new URL(sessionData.authUrl);
+          const token = url.searchParams.get('token');
+          const type = url.searchParams.get('type');
+
+          if (token && type) {
+            // Use the token to create a session
+            const { data: authResult, error: authError } = await supabase.auth.verifyOtp({
+              token_hash: token,
+              type: type
+            });
+
+            if (authError) {
+              console.error('❌ Failed to verify auth token:', authError);
+              throw new Error('Failed to create session');
+            }
+
+            console.log('✅ Supabase session created successfully');
+            return { 
+              success: true, 
+              user: authResult.user, 
+              session: authResult.session,
+              error: null 
+            };
+          }
+        }
+
+        // Fallback: return success but require manual refresh
+        return { 
+          success: true, 
+          user: result.user,
+          requiresRefresh: true,
+          error: null 
+        };
+
+      } catch (sessionError) {
+        console.error('Session creation error:', sessionError);
+        return { 
+          success: false, 
+          user: null,
+          error: `Session creation failed: ${sessionError.message}`
+        };
+      }
+    }
+
+    return { success: false, user: null, error: 'Authentication verification failed' };
   } catch (error) {
     console.error('Passkey authentication error:', error);
     return { success: false, user: null, error: error.message };
@@ -234,8 +341,32 @@ export const togglePasskey = async (enabled) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No authenticated user');
 
+    // Find the correct user ID (might be different from auth user ID)
+    let targetUserId = user.id;
+    
+    // Check if user exists with auth ID
+    const { data: authUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    // If not found, try email lookup
+    if (!authUser && user.email) {
+      const { data: emailUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', user.email)
+        .single();
+      
+      if (emailUser) {
+        targetUserId = emailUser.id;
+        console.log('🔄 Using email-based user ID for passkey toggle:', targetUserId);
+      }
+    }
+
     const { data, error } = await supabase.rpc('toggle_passkey', {
-      p_user_id: user.id,
+      p_user_id: targetUserId,
       p_enabled: enabled
     });
 
@@ -255,38 +386,67 @@ export const togglePasskey = async (enabled) => {
 // Remove passkey credential
 export const removePasskeyCredential = async (credentialId) => {
   try {
+    console.log('🗑️ removePasskeyCredential called with:', credentialId);
+    
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No authenticated user');
 
-    // Get current credentials
-    const { data: userData, error: fetchError } = await supabase
+    console.log('👤 Current user:', user.id);
+
+    // Find the correct user ID (might be different from auth user ID)
+    let targetUserId = user.id;
+    
+    // Check if user exists with auth ID
+    const { data: authUser } = await supabase
       .from('users')
-      .select('passkey_credentials')
+      .select('id')
       .eq('id', user.id)
       .single();
 
-    if (fetchError) throw fetchError;
+    // If not found, try email lookup
+    if (!authUser && user.email) {
+      const { data: emailUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', user.email)
+        .single();
+      
+      if (emailUser) {
+        targetUserId = emailUser.id;
+        console.log('🔄 Using email-based user ID for passkey deletion:', targetUserId);
+      }
+    }
 
-    // Filter out the credential to remove
-    const updatedCredentials = userData.passkey_credentials.filter(
-      cred => cred.credentialId !== credentialId
-    );
-
-    // Update user
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({
-        passkey_credentials: updatedCredentials,
-        passkey_enabled: updatedCredentials.length > 0,
-        updated_at: new Date().toISOString()
+    // Use the dedicated deletion API
+    const response = await fetch('/api/auth/passkey/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        credentialId,
+        userId: targetUserId
       })
-      .eq('id', user.id);
+    });
 
-    if (updateError) throw updateError;
+    console.log('📡 API response status:', response.status);
 
-    return { success: true, error: null };
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ API error response:', errorData);
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ API success response:', result);
+
+    return { 
+      success: result.success, 
+      error: result.success ? null : result.error,
+      message: result.message
+    };
   } catch (error) {
-    console.error('Error removing passkey:', error);
+    console.error('❌ Error in removePasskeyCredential:', error);
     return { success: false, error: error.message };
   }
 };
@@ -323,17 +483,34 @@ export const getUserPasskeys = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No authenticated user');
 
-    const { data, error } = await supabase
+    // First try with the auth user ID
+    let { data, error } = await supabase
       .from('users')
       .select('passkey_credentials, passkey_enabled')
       .eq('id', user.id)
       .single();
 
-    if (error) throw error;
+    // If no data found with auth user ID, try with email
+    if (!data && user.email && (!error || error.code === 'PGRST116')) {
+      console.log('🔍 No passkey data found by ID, trying email lookup...');
+      
+      const { data: emailData, error: emailError } = await supabase
+        .from('users')
+        .select('passkey_credentials, passkey_enabled')
+        .eq('email', user.email)
+        .single();
+
+      if (!emailError || emailError.code === 'PGRST116') {
+        data = emailData;
+        error = emailError;
+      }
+    }
+
+    if (error && error.code !== 'PGRST116') throw error;
 
     return {
-      credentials: data.passkey_credentials || [],
-      enabled: data.passkey_enabled || false,
+      credentials: data?.passkey_credentials || [],
+      enabled: data?.passkey_enabled || false,
       error: null
     };
   } catch (error) {
