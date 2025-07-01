@@ -2,7 +2,7 @@
 
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
-import { signOutUser } from '../../store/slices/authSlice';
+import { signOutUser, refreshUserProfile } from '../../store/slices/authSlice';
 import { fetchDomains } from '../../store/slices/questionsSlice';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -74,12 +74,14 @@ export default function DashboardPage() {
     }
     
     dispatch(fetchDomains());
-    
-    // Load all data when user is available
+  }, [dispatch, profile, router]);
+
+  useEffect(() => {
+    // Load all data when user is available - separate effect to avoid infinite loops
     if (user?.id) {
       loadUserStats();
-    loadLivePracticeSets();
-    loadUpcomingTests();
+      loadLivePracticeSets();
+      loadUpcomingTests();
       loadActiveSessions();
       
       // Refresh active sessions every 30 seconds
@@ -87,7 +89,7 @@ export default function DashboardPage() {
       
       return () => clearInterval(sessionsInterval);
     }
-  }, [dispatch, profile, router, user]);
+  }, [user?.id]); // Only depend on user ID, not the full user object
 
   const loadUserStats = async () => {
     if (!user?.id) return;
@@ -96,32 +98,18 @@ export default function DashboardPage() {
       setLoadingStats(true);
       
       // Get current session token
-      console.log('🔍 Dashboard: Getting session for stats...');
       let { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      console.log('📋 Session data:', {
-        hasSession: !!session,
-        hasAccessToken: !!session?.access_token,
-        tokenLength: session?.access_token?.length,
-        sessionError: sessionError?.message,
-        userId: user.id
-      });
-      
       if (!session?.access_token) {
-        console.error('❌ No valid session found for stats API');
-        console.log('🔄 Attempting to refresh session...');
-        
         const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
         if (refreshedSession?.access_token) {
-          console.log('✅ Session refreshed successfully');
           session = refreshedSession;
         } else {
-          console.error('❌ Failed to refresh session:', refreshError?.message);
+          console.error('Failed to get valid session for stats');
           return;
         }
       }
 
-      console.log('🚀 Making API call to stats with token...');
       const response = await fetch(`/api/users/${user.id}/stats`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -129,16 +117,12 @@ export default function DashboardPage() {
         }
       });
       
-      console.log('📊 Stats API response status:', response.status);
-      const data = await response.json();
-      console.log('📊 Stats API response data:', data);
-      
-      if (data.success) {
-        setUserStats(data.stats);
-        setRecentTests(data.stats.recentTests || []);
-        console.log('✅ Stats loaded successfully');
-      } else {
-        console.error('❌ API Error:', data.error);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setUserStats(data.stats);
+          setRecentTests(data.stats.recentTests || []);
+        }
       }
     } catch (error) {
       console.error('💥 Error loading user stats:', error);
@@ -154,32 +138,17 @@ export default function DashboardPage() {
       setLoadingSessions(true);
       
       // Get current session token
-      console.log('🔍 Dashboard: Getting session for active sessions...');
-      let { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      console.log('📋 Session data for sessions:', {
-        hasSession: !!session,
-        hasAccessToken: !!session?.access_token,
-        tokenLength: session?.access_token?.length,
-        sessionError: sessionError?.message,
-        userId: user.id
-      });
+      let { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.access_token) {
-        console.error('❌ No valid session found for sessions API');
-        console.log('🔄 Attempting to refresh session...');
-        
-        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+        const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
         if (refreshedSession?.access_token) {
-          console.log('✅ Session refreshed successfully for sessions');
           session = refreshedSession;
         } else {
-          console.error('❌ Failed to refresh session for sessions:', refreshError?.message);
           return;
         }
       }
 
-      console.log('🚀 Making API call to sessions with token...');
       const response = await fetch(`/api/users/${user.id}/sessions`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -187,15 +156,11 @@ export default function DashboardPage() {
         }
       });
       
-      console.log('📊 Sessions API response status:', response.status);
-      const data = await response.json();
-      console.log('📊 Sessions API response data:', data);
-      
-      if (data.success && data.sessions) {
-        setActiveSessions(data.sessions);
-        console.log('✅ Sessions loaded successfully');
-      } else {
-        console.error('❌ Sessions API Error:', data.error);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.sessions) {
+          setActiveSessions(data.sessions);
+        }
       }
     } catch (error) {
       console.error('💥 Error loading sessions:', error);
@@ -410,7 +375,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                    <span className="hidden sm:inline">Entrance.academy </span>Dashboard
+                    <span className="hidden sm:inline">Entrance Academy </span>Dashboard
                   </h1>
                   <p className="text-xs sm:text-sm text-slate-600 hidden sm:block">Welcome back, {profile?.fullName || user?.email?.split('@')[0]}</p>
                 </div>
@@ -430,7 +395,20 @@ export default function DashboardPage() {
                   aria-expanded={showUserDropdown}
                 >
                   <div className="relative">
-                    <div className="w-12 h-12 bg-gradient-to-br from-violet-500 via-purple-500 to-blue-500 rounded-2xl flex items-center justify-center text-white font-bold shadow-lg ring-2 ring-white/20 group-hover:ring-white/40 transition-all duration-200">
+                    {profile?.profile_image_url ? (
+                      <img 
+                        src={profile.profile_image_url}
+                        alt={profile?.fullName || 'User avatar'}
+                        className="w-12 h-12 rounded-2xl object-cover shadow-lg ring-2 ring-white/20 group-hover:ring-white/40 transition-all duration-200"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className={`w-12 h-12 bg-gradient-to-br from-violet-500 via-purple-500 to-blue-500 rounded-2xl flex items-center justify-center text-white font-bold shadow-lg ring-2 ring-white/20 group-hover:ring-white/40 transition-all duration-200 ${profile?.profile_image_url ? 'hidden' : ''}`}
+                    >
                       {getUserInitials(profile?.fullName)}
                     </div>
                     <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-sm">
@@ -767,7 +745,7 @@ export default function DashboardPage() {
                         <div className="relative">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg">
                             <FileText className="w-5 h-5 text-white" />
-                          </div>
+                        </div>
                           <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
                         </div>
                         <div>
@@ -787,24 +765,24 @@ export default function DashboardPage() {
                   
                   {/* Content Area */}
                   <div className="flex-1 flex flex-col min-h-0">
-                    {loadingStats ? (
+                  {loadingStats ? (
                       <div className="p-4 space-y-3">
                         {[1, 2, 3].map((i) => (
                           <div key={i} className="animate-pulse">
                             <div className="h-16 bg-gradient-to-r from-slate-200/60 via-slate-100/60 to-slate-200/60 rounded-xl"></div>
                           </div>
                         ))}
-                      </div>
-                    ) : recentTests.length > 0 ? (
+                    </div>
+                  ) : recentTests.length > 0 ? (
                       <>
                         {/* Tests List - Compact & Scrollable */}
                         <div className="flex-1 p-4 overflow-y-auto space-y-3 custom-scrollbar max-h-[400px]">
-                          {recentTests.map((test, index) => (
-                            <motion.div
-                              key={test.id}
+                      {recentTests.map((test, index) => (
+                        <motion.div
+                          key={test.id}
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.1 }}
+                          transition={{ delay: index * 0.1 }}
                               className="group relative bg-gradient-to-r from-white/90 via-blue-50/50 to-indigo-50/30 border border-slate-200/50 rounded-xl p-4 hover:shadow-lg hover:border-blue-300/50 transition-all duration-300 hover:scale-[1.02]"
                             >
                               {/* Modern Test Header */}
@@ -813,9 +791,9 @@ export default function DashboardPage() {
                                   <div className="flex items-center space-x-2 mb-1">
                                     <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"></div>
                                     <h4 className="font-bold text-slate-800 text-sm truncate group-hover:text-blue-900 transition-colors">
-                                      {test.name}
-                                    </h4>
-                                  </div>
+                                {test.name}
+                              </h4>
+                            </div>
                                   <div className="flex items-center space-x-2 text-xs text-slate-500">
                                     <Calendar className="w-3 h-3" />
                                     <span>{formatDate(test.date)}</span>
@@ -826,26 +804,26 @@ export default function DashboardPage() {
                                     test.score >= 80 ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border border-green-200' : 
                                     test.score >= 60 ? 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-700 border border-yellow-200' : 
                                     'bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200'
-                                  }`}>
-                                    {test.score}%
-                                  </div>
-                                </div>
+                              }`}>
+                                {test.score}%
                               </div>
-                              
+                            </div>
+                          </div>
+                          
                               {/* Compact Metrics */}
                               <div className="flex items-center space-x-4">
                                 <div className="flex items-center space-x-1">
                                   <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center">
                                     <span className="text-xs font-bold text-blue-700">{test.questions}</span>
-                                  </div>
+                            </div>
                                   <span className="text-xs text-slate-500">Q</span>
-                                </div>
+                            </div>
                                 <div className="flex items-center space-x-1">
                                   <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center">
                                     <span className="text-xs font-bold text-green-700">{test.correct}</span>
-                                  </div>
+                            </div>
                                   <span className="text-xs text-slate-500">✓</span>
-                                </div>
+                          </div>
                                 <div className="flex items-center space-x-1">
                                   <div className="w-7 h-7 bg-indigo-100 rounded-lg flex items-center justify-center">
                                     <Clock className="w-3 h-3 text-indigo-700" />
@@ -854,38 +832,38 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="flex-1">
                                   <div className="relative h-2 bg-slate-200 rounded-full overflow-hidden">
-                                    <motion.div
-                                      initial={{ width: 0 }}
-                                      animate={{ width: `${test.score}%` }}
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${test.score}%` }}
                                       transition={{ duration: 1, delay: 0.3 + index * 0.1 }}
                                       className={`absolute h-full rounded-full shadow-sm ${
                                         test.score >= 80 ? 'bg-gradient-to-r from-green-400 via-emerald-400 to-green-500' :
                                         test.score >= 60 ? 'bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500' :
                                         'bg-gradient-to-r from-red-400 via-rose-400 to-red-500'
-                                      }`}
-                                    />
+                                    }`}
+                                  />
                                   </div>
                                 </div>
                               </div>
                               
                               {/* Glossy Hover Effect */}
                               <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-blue-500/5 to-indigo-500/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                            </motion.div>
-                          ))}
+                        </motion.div>
+                      ))}
                         </div>
-                        
+                      
                         {/* Modern Action Footer */}
                         <div className="p-4 bg-gradient-to-r from-slate-50/80 to-blue-50/80 backdrop-blur-sm border-t border-slate-200/50">
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => router.push('/exams')}
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => router.push('/exams')}
                             className="w-full py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold text-sm rounded-xl hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl group"
-                          >
+                      >
                             <span>View All Tests</span>
                             <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
-                          </motion.button>
-                        </div>
+                      </motion.button>
+                    </div>
                       </>
                     ) : (
                       <div className="flex-1 flex flex-col items-center justify-center p-6">
@@ -906,17 +884,17 @@ export default function DashboardPage() {
                         <p className="text-slate-500 text-sm mb-6 text-center max-w-sm leading-relaxed">
                           Take your first test to unlock detailed analytics and track your progress
                         </p>
-                        <motion.button
+                      <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => router.push('/upcoming-tests')}
+                        onClick={() => router.push('/upcoming-tests')}
                           className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-sm rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2"
-                        >
+                      >
                           <span>Start Your First Test</span>
                           <ArrowRight className="w-4 h-4" />
-                        </motion.button>
-                      </div>
-                    )}
+                      </motion.button>
+                    </div>
+                  )}
                   </div>
                 </div>
 
@@ -949,7 +927,7 @@ export default function DashboardPage() {
                         <div className="relative">
                           <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
                             <Activity className="w-5 h-5 text-white" />
-                          </div>
+                        </div>
                           <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
                         </div>
                         <div>
@@ -969,14 +947,14 @@ export default function DashboardPage() {
                   
                   {/* Content Area */}
                   <div className="flex-1 flex flex-col min-h-0">
-                    {loadingStats ? (
+                  {loadingStats ? (
                       <div className="p-4 space-y-3">
                         <div className="h-32 bg-gradient-to-r from-slate-200/60 via-slate-100/60 to-slate-200/60 rounded-xl animate-pulse"></div>
                         {[1, 2].map((i) => (
                           <div key={i} className="h-20 bg-gradient-to-r from-slate-200/60 via-slate-100/60 to-slate-200/60 rounded-xl animate-pulse"></div>
                         ))}
-                      </div>
-                    ) : userStats?.weeklyProgress && userStats.weeklyProgress.length > 0 ? (
+                    </div>
+                  ) : userStats?.weeklyProgress && userStats.weeklyProgress.length > 0 ? (
                       <>
                         {/* Modern Bar Chart */}
                         <div className="p-4">
@@ -984,24 +962,24 @@ export default function DashboardPage() {
                             {/* Enhanced Background Grid */}
                             <div className="absolute inset-0 p-3 pl-8">
                               <svg className="w-full h-full opacity-30">
-                                <defs>
+                             <defs>
                                   <pattern id="weeklyGrid" width="20" height="16" patternUnits="userSpaceOnUse">
                                     <path d="M 20 0 L 0 0 0 16" fill="none" stroke="#059669" strokeWidth="0.5"/>
-                                  </pattern>
-                                </defs>
+                               </pattern>
+                             </defs>
                                 <rect width="100%" height="100%" fill="url(#weeklyGrid)" />
-                              </svg>
-                            </div>
-                            
-                            {/* Y-axis labels */}
+                           </svg>
+                         </div>
+                         
+                         {/* Y-axis labels */}
                             <div className="absolute left-1 top-2 bottom-2 flex flex-col justify-between text-xs text-emerald-600 font-semibold">
-                              <span>100%</span>
-                              <span>75%</span>
-                              <span>50%</span>
-                              <span>25%</span>
-                              <span>0%</span>
-                            </div>
-                            
+                           <span>100%</span>
+                           <span>75%</span>
+                           <span>50%</span>
+                           <span>25%</span>
+                           <span>0%</span>
+                         </div>
+                         
                             {/* Modern Bar Chart */}
                             <div className="absolute inset-3 left-8 flex items-end space-x-2">
                               {userStats.weeklyProgress.map((week, index) => {
@@ -1054,8 +1032,8 @@ export default function DashboardPage() {
                                       <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-slate-900"></div>
                                     </div>
                                   </div>
-                                );
-                              })}
+                                     );
+                                   })}
                               
                               {/* Add some visual interest with floating particles */}
                               <div className="absolute inset-0 pointer-events-none">
@@ -1083,23 +1061,23 @@ export default function DashboardPage() {
                                 ))}
                               </div>
                             </div>
-                          </div>
-                        </div>
+                         </div>
+                       </div>
                       
                         {/* Compact Weekly Details */}
                         <div className="flex-1 p-4 overflow-y-auto space-y-2 custom-scrollbar max-h-[320px]">
-                          {userStats.weeklyProgress.map((week, index) => {
-                            const weekDate = new Date(week.week);
-                            const isLatest = index === userStats.weeklyProgress.length - 1;
-                            
-                            return (
-                              <motion.div
-                                key={index}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.5, delay: index * 0.1 }}
+                        {userStats.weeklyProgress.map((week, index) => {
+                          const weekDate = new Date(week.week);
+                          const isLatest = index === userStats.weeklyProgress.length - 1;
+                          
+                          return (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.5, delay: index * 0.1 }}
                                 className={`group relative p-3 rounded-xl border transition-all duration-300 hover:shadow-md hover:scale-[1.01] ${
-                                  isLatest 
+                                isLatest 
                                     ? 'bg-gradient-to-r from-emerald-50/80 to-green-50/80 border-emerald-200 shadow-sm' 
                                     : 'bg-gradient-to-r from-white/90 to-slate-50/80 border-slate-200 hover:border-emerald-300'
                                 }`}
@@ -1111,34 +1089,34 @@ export default function DashboardPage() {
                                       week.averageScore >= 80 ? 'bg-gradient-to-b from-emerald-400 to-green-500' :
                                       week.averageScore >= 60 ? 'bg-gradient-to-b from-yellow-400 to-amber-500' :
                                       'bg-gradient-to-b from-red-400 to-rose-500'
-                                    }`}></div>
-                                    
-                                    <div>
+                                  }`}></div>
+                                  
+                                  <div>
                                       <p className="font-bold text-slate-800 text-sm flex items-center">
                                         {weekDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                        {isLatest && (
+                                      {isLatest && (
                                           <span className="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
-                                            Latest
-                                          </span>
-                                        )}
-                                      </p>
+                                          Latest
+                            </span>
+                                      )}
+                                    </p>
                                       <p className="text-xs text-slate-500">
                                         {weekDate.toLocaleDateString('en-US', { year: 'numeric' })}
-                                      </p>
-                                    </div>
+                                    </p>
                                   </div>
-                                  
-                                  <div className="text-right">
+                                </div>
+                                
+                                <div className="text-right">
                                     <div className={`inline-flex items-center px-2 py-1 rounded-lg text-sm font-bold shadow-sm ${
                                       week.averageScore >= 80 ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border border-emerald-200' :
                                       week.averageScore >= 60 ? 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-700 border border-yellow-200' :
                                       'bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border border-red-200'
-                                    }`}>
-                                      {week.averageScore}%
-                                    </div>
+                                  }`}>
+                                    {week.averageScore}%
                                   </div>
                                 </div>
-                                
+                              </div>
+                              
                                 {/* Compact Metrics */}
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-3">
@@ -1147,45 +1125,45 @@ export default function DashboardPage() {
                                         <span className="text-xs font-bold text-emerald-700">{week.tests}</span>
                                       </div>
                                       <span className="text-xs text-slate-500">tests</span>
-                                    </div>
-                                    
+                                </div>
+                                
                                     <div className="flex items-center space-x-1">
                                       <div className="text-sm font-bold text-emerald-600">{week.averageScore}%</div>
                                       <span className="text-xs text-slate-500">avg</span>
-                                    </div>
-                                    
+                                </div>
+                                
                                     {index > 0 && (
                                       <div className="flex items-center space-x-1">
                                         <span className={`text-sm font-bold ${
-                                          week.averageScore > userStats.weeklyProgress[index - 1].averageScore 
+                                        week.averageScore > userStats.weeklyProgress[index - 1].averageScore 
                                             ? 'text-emerald-600' : week.averageScore < userStats.weeklyProgress[index - 1].averageScore 
-                                            ? 'text-red-600' : 'text-slate-600'
-                                        }`}>
-                                          {week.averageScore > userStats.weeklyProgress[index - 1].averageScore ? '↗' :
-                                           week.averageScore < userStats.weeklyProgress[index - 1].averageScore ? '↘' : '→'}
-                                          {Math.abs(week.averageScore - userStats.weeklyProgress[index - 1].averageScore)}%
-                                        </span>
+                                          ? 'text-red-600' : 'text-slate-600'
+                                      }`}>
+                                        {week.averageScore > userStats.weeklyProgress[index - 1].averageScore ? '↗' :
+                                         week.averageScore < userStats.weeklyProgress[index - 1].averageScore ? '↘' : '→'}
+                                        {Math.abs(week.averageScore - userStats.weeklyProgress[index - 1].averageScore)}%
+                            </span>
                                         <span className="text-xs text-slate-500">change</span>
-                                      </div>
+                          </div>
                                     )}
-                                  </div>
-                                  
+                              </div>
+                              
                                   <div className="flex-1 max-w-24 ml-3">
                                     <div className="relative h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                      <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${week.averageScore}%` }}
-                                        transition={{ duration: 0.8, delay: 0.2 + index * 0.1 }}
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${week.averageScore}%` }}
+                                    transition={{ duration: 0.8, delay: 0.2 + index * 0.1 }}
                                         className={`absolute h-full rounded-full shadow-sm ${
                                           week.averageScore >= 80 ? 'bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-500' :
                                           week.averageScore >= 60 ? 'bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500' :
                                           'bg-gradient-to-r from-red-400 via-rose-400 to-red-500'
-                                        }`}
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                                
+                              }`}
+                            />
+                          </div>
+                        </div>
+                              </div>
+                              
                                 {/* Subtle Hover Effect */}
                                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-green-500/5 to-teal-500/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                             </motion.div>
@@ -1195,12 +1173,12 @@ export default function DashboardPage() {
                       
                       {/* Modern Action Footer */}
                       <div className="p-4 bg-gradient-to-r from-emerald-50/80 to-green-50/80 backdrop-blur-sm border-t border-emerald-200/50">
-                        <motion.div
+                      <motion.div
                           initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.6, delay: 0.5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.5 }}
                           className="grid grid-cols-2 gap-3 text-center"
-                        >
+                      >
                           <div>
                             <div className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
                               {userStats.weeklyProgress.length > 1 && userStats.weeklyProgress[userStats.weeklyProgress.length - 1].averageScore > userStats.weeklyProgress[0].averageScore ? '📈' : 
@@ -1223,14 +1201,14 @@ export default function DashboardPage() {
                             <div className="text-xs font-medium text-slate-700">Average</div>
                             <div className="text-xs text-slate-500">
                               {userStats.weeklyProgress.length} weeks
-                            </div>
                           </div>
-                        </motion.div>
-                      </div>
+                        </div>
+                      </motion.div>
+                    </div>
                       </>
-                    ) : (
+                  ) : (
                       <div className="flex-1 flex flex-col items-center justify-center p-6">
-                        <motion.div
+                      <motion.div
                           initial={{ scale: 0, rotate: -10 }}
                           animate={{ scale: 1, rotate: 0 }}
                           transition={{ duration: 0.6, type: "spring" }}
@@ -1242,22 +1220,22 @@ export default function DashboardPage() {
                           <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-400 rounded-full flex items-center justify-center">
                             <span className="text-xs">📊</span>
                           </div>
-                        </motion.div>
+                      </motion.div>
                         <h4 className="font-bold text-slate-800 mb-2 text-lg">Track Your Progress</h4>
                         <p className="text-slate-500 text-sm mb-6 text-center max-w-sm leading-relaxed">
                           Complete tests to unlock detailed weekly progress analytics and performance insights
                         </p>
-                        <motion.button
+                      <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => router.push('/upcoming-tests')}
+                        onClick={() => router.push('/upcoming-tests')}
                           className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold text-sm rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2"
-                        >
+                      >
                           <span>Start Your First Test</span>
                           <ArrowRight className="w-4 h-4" />
-                        </motion.button>
-                      </div>
-                    )}
+                      </motion.button>
+                    </div>
+                  )}
                   </div>
                 </div>
               </div>

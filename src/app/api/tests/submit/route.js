@@ -102,7 +102,7 @@ export async function POST(request) {
       // Fallback to sample data
       const baseUrl = process.env.NODE_ENV === 'production' 
         ? process.env.NEXT_PUBLIC_APP_URL || 'https://your-domain.com'
-        : `http://${request.headers.get('host') || 'localhost:3000'}`;
+        : `http://${request.headers.get('host') || 'localhost:3001'}`;
         
       const questionsResponse = await fetch(`${baseUrl}/api/sample-data?type=questions`);
       if (questionsResponse.ok) {

@@ -52,11 +52,11 @@ export default function Footer() {
   };
 
   const socialLinks = [
-    { name: 'Facebook', icon: Facebook, href: 'https://facebook.com/entrance.academy', color: 'hover:text-blue-600' },
-    { name: 'Twitter', icon: Twitter, href: 'https://twitter.com/entrance_academy', color: 'hover:text-blue-400' },
-    { name: 'Instagram', icon: Instagram, href: 'https://instagram.com/entrance.academy', color: 'hover:text-pink-600' },
-    { name: 'LinkedIn', icon: Linkedin, href: 'https://linkedin.com/company/entrance-academy', color: 'hover:text-blue-700' },
-    { name: 'YouTube', icon: Youtube, href: 'https://youtube.com/entrance.academy', color: 'hover:text-red-600' },
+    { name: 'Facebook', icon: Facebook, href: '#', color: 'hover:text-blue-600' },
+    { name: 'Twitter', icon: Twitter, href: '#', color: 'hover:text-blue-400' },
+    { name: 'Instagram', icon: Instagram, href: '#', color: 'hover:text-pink-600' },
+    { name: 'LinkedIn', icon: Linkedin, href: '#', color: 'hover:text-blue-700' },
+    { name: 'YouTube', icon: Youtube, href: '#', color: 'hover:text-red-600' },
   ];
 
   return (
@@ -76,7 +76,7 @@ export default function Footer() {
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
                   <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <span className="text-xl sm:text-2xl font-bold">Entrance.academy</span>
+                <span className="text-xl sm:text-2xl font-bold">Entrance Academy</span>
               </div>
               <p className="text-slate-300 leading-relaxed mb-6 text-sm sm:text-base">
                 Empowering students with comprehensive online testing and assessment tools. 
@@ -250,7 +250,7 @@ export default function Footer() {
               viewport={{ once: true }}
               className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0 text-xs sm:text-sm text-slate-400 text-center sm:text-left"
             >
-              <span>© {currentYear} Entrance.academy. All rights reserved.</span>
+              <span>© {currentYear} Entrance Academy. All rights reserved.</span>
               <div className="flex items-center justify-center sm:justify-start space-x-1">
                 <span>Made with</span>
                 <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-red-500 fill-current" />

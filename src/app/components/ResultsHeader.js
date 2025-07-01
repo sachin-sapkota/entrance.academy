@@ -40,7 +40,7 @@ export default function ResultsHeader({ finalScore, totalMarks, percentage, onBa
 
           {/* Center - Brand */}
           <div className="flex items-center">
-                          <div className="text-xl font-semibold text-slate-800">Entrance.academy</div>
+                          <div className="text-xl font-semibold text-slate-800">Entrance Academy</div>
           </div>
 
           {/* Right Side - Score Display */}

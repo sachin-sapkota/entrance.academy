@@ -64,7 +64,8 @@ const createBasicProfile = (user) => {
     id: user.id,
     email: user.email,
     full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-          role: user.email === 'admin@entrance.academy' ? 'admin' : (user.user_metadata?.role || 'free_user'),
+    role: user.email === 'admin@entrance.academy' ? 'admin' : (user.user_metadata?.role || 'free_user'),
+    profile_image_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -188,7 +189,23 @@ export const fetchCurrentUser = createAsyncThunk(
       
       console.log('Current user found:', user.email);
       
-      // Create a basic profile without database calls to avoid RLS issues
+      // Try to fetch complete profile from database first
+      try {
+        const { data: dbProfile, error: profileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+          
+        if (!profileError && dbProfile) {
+          console.log('fetchCurrentUser: Database profile found with image:', !!dbProfile.profile_image_url);
+          return { user, profile: dbProfile };
+        }
+      } catch (profileError) {
+        console.log('fetchCurrentUser: Could not fetch database profile, using basic profile');
+      }
+      
+      // Fallback to basic profile
       const profile = createBasicProfile(user);
       
       console.log('fetchCurrentUser: Profile created:', { email: profile.email, role: profile.role });
@@ -198,6 +215,36 @@ export const fetchCurrentUser = createAsyncThunk(
     } catch (error) {
       console.log('fetchCurrentUser: Caught error:', error.message);
       return null;
+    }
+  }
+)
+
+// Add a new thunk to refresh user profile
+export const refreshUserProfile = createAsyncThunk(
+  'auth/refreshUserProfile',
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const { auth } = getState();
+      const userId = auth.user?.id;
+      
+      if (!userId) {
+        return rejectWithValue('No user ID available');
+      }
+      
+      const { data: profile, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (error) {
+        throw error;
+      }
+      
+      return profile;
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+      return rejectWithValue(error.message);
     }
   }
 )
@@ -235,6 +282,9 @@ const authSlice = createSlice({
           isAuthenticated: !!action.payload.user
         }));
       }
+    },
+    updateProfile: (state, action) => {
+      state.profile = { ...state.profile, ...action.payload };
     },
     clearUser: (state) => {
       state.user = null
@@ -327,8 +377,14 @@ const authSlice = createSlice({
         state.isLoading = false
         state.error = action.payload
       })
+      // Refresh Profile
+      .addCase(refreshUserProfile.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.profile = action.payload;
+        }
+      })
   },
 })
 
-export const { clearError, setError, setUser, clearUser } = authSlice.actions
+export const { clearError, setError, setUser, clearUser, updateProfile } = authSlice.actions
 export default authSlice.reducer 

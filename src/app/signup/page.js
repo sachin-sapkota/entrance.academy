@@ -82,7 +82,7 @@ export default function SignupPage() {
                   <span className="text-white font-bold text-sm">E</span>
                 </div>
                 <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-                  Entrance.academy
+                  Entrance Academy
                 </h1>
               </motion.div>
               
@@ -182,7 +182,7 @@ export default function SignupPage() {
                 <span className="text-white font-bold text-sm">E</span>
               </div>
                               <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-                  Entrance.academy
+                  Entrance Academy
                 </h1>
             </motion.div>
             
@@ -227,7 +227,7 @@ export default function SignupPage() {
               <h1 className="text-2xl font-bold text-slate-900 mb-2">
                 Create account
               </h1>
-              <p className="text-slate-600 text-sm">Join Entrance.academy today and start your journey</p>
+              <p className="text-slate-600 text-sm">Join Entrance Academy today and start your journey</p>
             </motion.div>
 
             {error && (
@@ -374,13 +374,15 @@ export default function SignupPage() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.9, duration: 0.5 }}
-              className="space-y-3"
+              className="space-y-3 relative z-20"
             >
               {/* Google Sign Up */}
-              <button
+              <motion.button
                 onClick={() => handleOAuthSignUp('google')}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white/80 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
+                disabled={loading || isLoading}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white/80 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group relative z-30"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -389,23 +391,9 @@ export default function SignupPage() {
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
                 <span className="font-medium text-gray-700 group-hover:text-gray-900">
-                  Sign up with Google
+                  {loading ? 'Signing up...' : 'Sign up with Google'}
                 </span>
-              </button>
-
-              {/* Apple Sign Up */}
-              <button
-                onClick={() => handleOAuthSignUp('apple')}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-black text-white rounded-xl hover:bg-gray-900 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-                </svg>
-                <span className="font-medium">
-                  Sign up with Apple
-                </span>
-              </button>
+              </motion.button>
             </motion.div>
           </div>
         </motion.div>

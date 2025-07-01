@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
-import { setUser } from '@/store/slices/authSlice';
+import { setUser, refreshUserProfile } from '@/store/slices/authSlice';
 import { supabase } from '@/lib/supabase';
 import { checkPhoneVerification } from '@/lib/auth-service';
 import { motion } from 'framer-motion';
@@ -20,47 +20,159 @@ export default function AuthCallbackPage() {
         // Get session from URL hash
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (sessionError) throw sessionError;
+        if (sessionError) {
+          throw sessionError;
+        }
         
         if (!session) {
           throw new Error('No session found');
         }
 
-        // Get user profile
-        const { data: userProfile, error: profileError } = await supabase
+        // Get or create user profile
+        let userProfile;
+        
+        const { data: existingProfile, error: profileError } = await supabase
           .from('users')
           .select('*')
           .eq('id', session.user.id)
           .single();
 
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error('Profile fetch error:', profileError);
+        if (profileError && profileError.code === 'PGRST116') {
+          // User profile doesn't exist, create it
+          console.log('Creating new user profile for OAuth user:', {
+            userId: session.user.id,
+            email: session.user.email,
+            provider: session.user.app_metadata?.provider,
+            userData: session.user.user_metadata
+          });
+
+          // Extract comprehensive user data from Google OAuth
+          const userData = session.user.user_metadata || {};
+          const isGoogleAuth = session.user.app_metadata?.provider === 'google';
+          
+          const newProfile = {
+            id: session.user.id,
+            email: session.user.email,
+            full_name: userData.full_name || userData.name || session.user.email?.split('@')[0],
+            role: session.user.email === 'admin@entrance.academy' ? 'admin' : 'free_user',
+            auth_provider: session.user.app_metadata?.provider || 'google',
+            phone_verified: false,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            
+            // Google-specific data
+            ...(isGoogleAuth && {
+              profile_image_url: userData.avatar_url || userData.picture,
+              google_id: userData.provider_id || userData.sub,
+              bio: userData.bio || null,
+              // Store additional Google data in meta_data
+              meta_data: {
+                google_data: {
+                  given_name: userData.given_name,
+                  family_name: userData.family_name,
+                  locale: userData.locale,
+                  verified_email: userData.email_verified,
+                  picture_url: userData.picture,
+                  provider_id: userData.provider_id,
+                  last_sign_in_at: userData.last_sign_in_at
+                }
+              }
+            })
+          };
+
+          const { data: createdProfile, error: createError } = await supabase
+            .from('users')
+            .insert(newProfile)
+            .select()
+            .single();
+
+          if (createError) {
+            console.error('Failed to create user profile:', createError);
+            // Continue with basic profile if creation fails
+            userProfile = newProfile;
+          } else {
+            userProfile = createdProfile;
+          }
+        } else if (profileError) {
+          // Use basic profile if fetch fails
+          userProfile = {
+            id: session.user.id,
+            email: session.user.email,
+            full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
+            role: 'free_user',
+            phone_verified: false
+          };
+        } else {
+          // User profile exists, update with latest Google data if it's a Google auth
+          userProfile = existingProfile;
+          
+          const userData = session.user.user_metadata || {};
+          const isGoogleAuth = session.user.app_metadata?.provider === 'google';
+          
+                      if (isGoogleAuth && userData) {
+            
+            const updatedData = {
+              updated_at: new Date().toISOString(),
+              ...(userData.full_name || userData.name) && { 
+                full_name: userData.full_name || userData.name 
+              },
+              ...(userData.avatar_url || userData.picture) && { 
+                profile_image_url: userData.avatar_url || userData.picture 
+              },
+              // Update meta_data with latest Google info
+              meta_data: {
+                ...existingProfile.meta_data,
+                google_data: {
+                  given_name: userData.given_name,
+                  family_name: userData.family_name,
+                  locale: userData.locale,
+                  verified_email: userData.email_verified,
+                  picture_url: userData.picture,
+                  provider_id: userData.provider_id,
+                  last_sign_in_at: new Date().toISOString()
+                }
+              }
+            };
+
+            const { data: updatedProfile, error: updateError } = await supabase
+              .from('users')
+              .update(updatedData)
+              .eq('id', session.user.id)
+              .select()
+              .single();
+
+            if (updateError) {
+              console.warn('Failed to update profile with Google data:', updateError);
+            } else {
+              userProfile = updatedProfile;
+            }
+          }
         }
 
         // Update store with user data
         dispatch(setUser({
           user: session.user,
-          profile: userProfile || {
-            id: session.user.id,
-            email: session.user.email,
-            full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
-            role: 'free_user'
-          }
+          profile: userProfile
         }));
 
         // Check if phone verification is required
-        const { required } = await checkPhoneVerification(session.user.id);
+        // const { required, error: phoneCheckError } = await checkPhoneVerification(session.user.id);
         
-        if (required) {
-          router.push('/phone-verify');
-        } else {
+        // if (phoneCheckError) {
+        //   console.warn('Phone verification check failed:', phoneCheckError);
+        // }
+        
+        // if (required) {
+        //   router.push('/phone-verify');
+        // } else {
           // Determine redirect based on role
           if (userProfile?.role === 'admin') {
             router.push('/admin');
           } else {
             router.push('/dashboard');
           }
-        }
+        // }
       } catch (error) {
         console.error('Auth callback error:', error);
         setError(error.message);

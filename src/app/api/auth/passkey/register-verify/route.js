@@ -35,8 +35,9 @@ export async function POST(request) {
     }
 
     // Verify the registration
-    const rpID = process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : 'localhost';
-    const expectedOrigin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const rpID = isDevelopment ? 'localhost' : (process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : 'localhost');
+    const expectedOrigin = isDevelopment ? 'http://localhost:3001' : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001');
 
     const verification = await verifyRegistrationResponse({
       response: credential,

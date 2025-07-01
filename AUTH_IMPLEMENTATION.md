@@ -4,8 +4,8 @@ This document outlines the complete authentication system implementation for the
 
 ## Features Implemented
 
-### 1. **Google and Apple OAuth Sign-in**
-- Integrated OAuth providers for seamless authentication
+### 1. **Google OAuth Sign-in**
+- Integrated Google OAuth provider for seamless authentication
 - Automatic user profile creation on first sign-in
 - Support for linking OAuth accounts to existing users
 
@@ -29,7 +29,6 @@ This document outlines the complete authentication system implementation for the
 ```sql
 - auth_provider TEXT DEFAULT 'email'
 - google_id TEXT UNIQUE
-- apple_id TEXT UNIQUE
 - passkey_enabled BOOLEAN DEFAULT false
 - passkey_credentials JSONB DEFAULT '[]'
 - phone_verification_code TEXT
@@ -44,11 +43,6 @@ This document outlines the complete authentication system implementation for the
 1. **Google OAuth**:
    - Enable Google provider in Supabase Auth settings
    - Add your Google OAuth credentials
-   - Set redirect URL: `https://your-domain.com/auth/callback`
-
-2. **Apple OAuth**:
-   - Enable Apple provider in Supabase Auth settings
-   - Configure Apple Sign In credentials
    - Set redirect URL: `https://your-domain.com/auth/callback`
 
 ## Phone Verification Flow
