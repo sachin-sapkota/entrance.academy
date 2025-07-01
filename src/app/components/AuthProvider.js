@@ -84,11 +84,12 @@ export default function AuthProvider({ children }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session?.user?.email);
+      // Only log important events to reduce console noise
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        console.log('Auth state change:', event, session?.user?.email);
+      }
       
       if (event === 'SIGNED_IN' && session) {
-        // User signed in - set user immediately
-        console.log('User signed in:', session.user.email);
         dispatch(setUser({ 
           user: session.user, 
           profile: { 
@@ -99,8 +100,6 @@ export default function AuthProvider({ children }) {
           }
         }));
       } else if (event === 'SIGNED_OUT') {
-        // User signed out
-        console.log('User signed out');
         dispatch(clearUser());
       }
     });

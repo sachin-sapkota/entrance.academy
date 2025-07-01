@@ -7,16 +7,24 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    storageKey: 'supabase.auth.token',
-    flowType: 'pkce'
+// Create singleton client to avoid multiple instances
+let supabaseClientInstance = null;
+
+export const supabase = (() => {
+  if (!supabaseClientInstance) {
+    supabaseClientInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        storageKey: 'supabase.auth.token',
+        flowType: 'pkce'
+      }
+    });
   }
-})
+  return supabaseClientInstance;
+})();
 
 // Helper function to make authenticated API requests
 export const authenticatedFetch = async (url, options = {}) => {

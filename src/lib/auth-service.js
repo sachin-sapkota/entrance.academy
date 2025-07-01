@@ -18,12 +18,34 @@ const safeErrorLog = (error, context = '') => {
 // OAuth Sign In
 export const signInWithOAuth = async (provider) => {
   try {
-    console.log(`🔄 Starting ${provider} OAuth sign-in...`);
+    // Determine the correct redirect URL based on environment
+    const getRedirectUrl = () => {
+      // In production, use the production domain
+      if (typeof window !== 'undefined') {
+        const currentOrigin = window.location.origin;
+        
+        // If we're on localhost, keep using localhost for development
+        if (currentOrigin.includes('localhost')) {
+          return `${currentOrigin}/auth/callback`;
+        }
+        
+        // For production, use the current domain
+        return `${currentOrigin}/auth/callback`;
+      }
+      
+      // Fallback (should not happen in browser)
+      return process.env.NEXT_PUBLIC_APP_URL ? 
+        `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback` : 
+        `${window.location.origin}/auth/callback`;
+    };
+
+    const redirectUrl = getRedirectUrl();
+    console.log('OAuth redirect URL:', redirectUrl);
     
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: redirectUrl,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -32,14 +54,10 @@ export const signInWithOAuth = async (provider) => {
       }
     });
 
-    console.log(`${provider} OAuth response:`, { data, error });
-
     if (error) {
-      console.error(`❌ ${provider} OAuth error:`, error);
+      console.error(`${provider} OAuth error:`, error);
       throw error;
     }
-
-    console.log(`✅ ${provider} OAuth redirect initiated successfully`);
     return { data, error: null };
   } catch (error) {
     console.error(`❌ ${provider} OAuth error:`, error);
@@ -138,11 +156,9 @@ export const registerPasskey = async () => {
     }
 
     const options = await response.json();
-    console.log('Registration options received:', options);
 
     // Start WebAuthn registration
     const credential = await startRegistration(options);
-    console.log('WebAuthn registration completed:', credential);
 
     // Verify registration with server
     const verifyResponse = await fetch('/api/auth/passkey/register-verify', {
