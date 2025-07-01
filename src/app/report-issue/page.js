@@ -280,7 +280,7 @@ export default function ReportIssuePage() {
                     value={formData.title}
                     onChange={handleInputChange}
                     required
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors"
                     placeholder="Brief description of the issue"
                   />
                 </div>
@@ -298,7 +298,7 @@ export default function ReportIssuePage() {
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors"
                     placeholder="For follow-up communication"
                   />
                 </div>
@@ -345,7 +345,7 @@ export default function ReportIssuePage() {
                 onChange={handleInputChange}
                 required
                 rows={6}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors resize-none"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors resize-none"
                 placeholder="Please describe the issue in detail, including what you were trying to do, what happened, and any error messages you saw..."
               />
             </div>
@@ -362,7 +362,7 @@ export default function ReportIssuePage() {
                     value={formData.stepsToReproduce}
                     onChange={handleInputChange}
                     rows={4}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors resize-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors resize-none"
                     placeholder="1. Go to...\n2. Click on...\n3. See the error..."
                   />
                 </div>
@@ -377,7 +377,7 @@ export default function ReportIssuePage() {
                       value={formData.expectedBehavior}
                       onChange={handleInputChange}
                       rows={3}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors resize-none"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors resize-none"
                       placeholder="What should have happened?"
                     />
                   </div>
@@ -391,7 +391,7 @@ export default function ReportIssuePage() {
                       value={formData.actualBehavior}
                       onChange={handleInputChange}
                       rows={3}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors resize-none"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors resize-none"
                       placeholder="What actually happened?"
                     />
                   </div>
@@ -406,7 +406,7 @@ export default function ReportIssuePage() {
                     value={formData.errorMessage}
                     onChange={handleInputChange}
                     rows={3}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors resize-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors resize-none"
                     placeholder="Copy and paste any error messages you received..."
                   />
                 </div>

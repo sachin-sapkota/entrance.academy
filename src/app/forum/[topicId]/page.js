@@ -373,7 +373,7 @@ export default function TopicPage() {
                   placeholder={user ? "Share your thoughts, experiences, or ask follow-up questions..." : "Please log in to reply"}
                   rows={4}
                   disabled={!user}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors resize-none disabled:opacity-50"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors resize-none disabled:opacity-50"
                 />
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-slate-500">
@@ -503,7 +503,7 @@ export default function TopicPage() {
                               placeholder={user ? `Reply to ${reply.author?.full_name || 'Anonymous'}...` : "Please log in to reply"}
                               rows={3}
                               disabled={!user}
-                              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors resize-none disabled:opacity-50"
+                              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors resize-none disabled:opacity-50"
                             />
                             <div className="flex items-center justify-end space-x-3 mt-3">
                               <motion.button

@@ -57,45 +57,69 @@ export default function ResultsPage() {
           
           const { authenticatedFetch } = await import('../../lib/supabase');
           
-          // Method 1: Check for completed test in database
+          // Method 1: Check for completed test in database (with retry logic)
           try {
+            // Direct fetch with single retry (backend now verifies before returning)
+            let testData = null;
+            
             const testResponse = await authenticatedFetch(`/api/tests/${testId}`);
             if (testResponse.ok) {
-              const testData = await testResponse.json();
-              if (testData.success && testData.test) {
-                logger.info('Found completed test in database', { 
-                  testId,
-                  status: testData.test.status 
-                });
-                
-                // Extract practice set ID from test metadata
-                const testPracticeSetId = testData.test.meta_data?.practice_set_id || testId;
-                setPracticeSetId(testPracticeSetId);
-                
-                // Convert database test format to results format
-                const dbResults = {
-                  totalQuestions: testData.test.total_questions,
-                  attemptedQuestions: testData.test.attempted_questions,
-                  unattemptedQuestions: testData.test.unattempted_questions,
-                  correctAnswers: testData.test.correct_answers,
-                  wrongAnswers: testData.test.wrong_answers,
-                  rawScore: testData.test.obtained_marks,
-                  negativeMarks: testData.test.negative_marks,
-                  finalScore: testData.test.final_score,
-                  maxPossibleScore: testData.test.total_marks,
-                  percentage: testData.test.percentage,
-                  submissionTime: testData.test.submitted_at,
-                  totalTimeSpent: testData.test.time_spent_seconds,
-                  domainScores: testData.test.domain_scores || {},
-                  detailedResults: testData.attempts || []
-                };
-                
-                setResults(dbResults);
-                return;
+              const responseData = await testResponse.json();
+              if (responseData.success && responseData.test) {
+                testData = responseData;
+              }
+            } else if (testResponse.status === 404) {
+              logger.warn('Test not found, attempting one retry', { testId });
+              
+              // Single retry after 500ms
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              const retryResponse = await authenticatedFetch(`/api/tests/${testId}`);
+              if (retryResponse.ok) {
+                const retryData = await retryResponse.json();
+                if (retryData.success && retryData.test) {
+                  testData = retryData;
+                  logger.info('Test found on retry', { testId });
+                }
               }
             }
+            
+            if (testData) {
+              logger.info('Found completed test in database', { 
+                testId,
+                status: testData.test.status
+              });
+              
+              // Extract practice set ID from test metadata
+              const testPracticeSetId = testData.test.meta_data?.practice_set_id || testId;
+              setPracticeSetId(testPracticeSetId);
+              
+              // Convert database test format to results format
+              const dbResults = {
+                totalQuestions: testData.test.total_questions,
+                attemptedQuestions: testData.test.attempted_questions,
+                unattemptedQuestions: testData.test.unattempted_questions,
+                correctAnswers: testData.test.correct_answers,
+                wrongAnswers: testData.test.wrong_answers,
+                rawScore: testData.test.obtained_marks,
+                negativeMarks: testData.test.negative_marks,
+                finalScore: testData.test.final_score,
+                maxPossibleScore: testData.test.total_marks,
+                percentage: testData.test.percentage,
+                submissionTime: testData.test.submitted_at,
+                totalTimeSpent: testData.test.time_spent_seconds,
+                domainScores: testData.test.domain_scores || {},
+                detailedResults: testData.attempts || []
+              };
+              
+              setResults(dbResults);
+              return;
+            }
           } catch (dbError) {
-            logger.warn('No completed test found in database', { error: dbError.message });
+            logger.warn('No completed test found in database', { 
+              error: dbError.message,
+              testId 
+            });
           }
           
           // Method 2: Check session data (fallback)

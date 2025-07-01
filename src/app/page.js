@@ -29,7 +29,9 @@ import {
   Lock,
   Lightbulb,
   MessageSquare,
-  Heart
+  Heart,
+  Menu,
+  X
 } from 'lucide-react';
 import Footer from './components/Footer';
 
@@ -46,11 +48,12 @@ function HomePage() {
   const router = useRouter();
   const [livePracticeSets, setLivePracticeSets] = useState([]);
   const [loadingPracticeSets, setLoadingPracticeSets] = useState(true);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [stats, setStats] = useState({
-    totalTests: '500+',
-    totalQuestions: '5,000+',
-    successRate: '95%',
-    avgImprovement: '40%'
+    totalTests: '200+',
+    totalQuestions: '8,500+',
+    successRate: '89%',
+    avgImprovement: '45%'
   });
 
   // Sample MCQ Questions Database
@@ -391,38 +394,38 @@ function HomePage() {
   const features = [
     {
       icon: Brain,
-      title: "Smart Assessment",
-      description: "AI-powered question selection adapts to your learning pace and identifies knowledge gaps.",
+      title: "MECEE-BL Focused",
+      description: "Questions aligned with Medical Education Commission syllabus and exam pattern for all 5 clusters.",
       color: "from-blue-500 to-indigo-600"
     },
     {
       icon: BarChart3,
-      title: "Detailed Analytics",
-      description: "Comprehensive performance tracking with insights into strengths and improvement areas.",
+      title: "Subject-wise Analytics",
+      description: "Track performance in Physics, Chemistry, Botany, Zoology, and Mental Agility Test separately.",
       color: "from-green-500 to-emerald-600"
     },
     {
       icon: Clock,
-      title: "Timed Practice",
-      description: "Realistic exam conditions with customizable time limits to build confidence.",
+      title: "3-Hour Practice Tests",
+      description: "Realistic MECEE-BL exam conditions with 200 MCQs and negative marking simulation.",
       color: "from-purple-500 to-violet-600"
     },
     {
       icon: Trophy,
-      title: "Achievement System",
-      description: "Gamified learning with badges, streaks, and leaderboards to keep you motivated.",
+      title: "Percentile Tracking",
+      description: "Know your 50th percentile rank requirement and track improvement towards merit list.",
       color: "from-orange-500 to-amber-600"
     },
     {
       icon: Smartphone,
-      title: "Mobile Optimized",
-      description: "Study anywhere, anytime with our fully responsive mobile-first design.",
+      title: "Offline Study Mode",
+      description: "Download questions for offline practice in remote areas across Nepal.",
       color: "from-pink-500 to-rose-600"
     },
     {
       icon: Shield,
-      title: "Secure Platform",
-      description: "Enterprise-grade security with anti-cheating measures and data protection.",
+      title: "Anti-Cheating System",
+      description: "Secure practice environment with randomized questions and time-bound sessions.",
       color: "from-cyan-500 to-blue-600"
     }
   ];
@@ -430,11 +433,11 @@ function HomePage() {
 
 
   const subjects = [
-    { name: "Physics", count: "1,000+ Questions", color: "bg-green-100 text-green-800" },
-    { name: "Chemistry", count: "1,000+ Questions", color: "bg-yellow-100 text-yellow-800" },
-    { name: "Zoology", count: "1,200+ Questions", color: "bg-red-100 text-red-800" },
-    { name: "Botany", count: "1,500+ Questions", color: "bg-purple-100 text-purple-800" },
-    { name: "MAT", count: "800+ Questions", color: "bg-pink-100 text-pink-800" }
+    { name: "Physics", count: "1,500+ Questions", color: "bg-green-100 text-green-800" },
+    { name: "Chemistry", count: "1,800+ Questions", color: "bg-yellow-100 text-yellow-800" },
+    { name: "Zoology", count: "2,000+ Questions", color: "bg-red-100 text-red-800" },
+    { name: "Botany", count: "2,200+ Questions", color: "bg-purple-100 text-purple-800" },
+    { name: "MAT", count: "1,000+ Questions", color: "bg-pink-100 text-pink-800" }
   ];
 
   return (
@@ -448,18 +451,23 @@ function HomePage() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <motion.div 
-              className="flex items-center space-x-2"
-              whileHover={{ scale: 1.05 }}
-            >
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                <GraduationCap className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Entrance Academy
-              </span>
-            </motion.div>
+            {/* Logo - Clickable */}
+            <Link href="/" className="flex items-center space-x-2">
+              <motion.div 
+                className="flex items-center space-x-2"
+                whileHover={{ scale: 1.05 }}
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                  <GraduationCap className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  <span className="hidden xs:inline">Entrance Academy</span>
+                  <span className="xs:hidden">EA</span>
+                </span>
+              </motion.div>
+            </Link>
             
+            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
               <Link href="#features" className="text-slate-600 hover:text-slate-900 font-medium transition-colors">
                 Features
@@ -467,11 +475,15 @@ function HomePage() {
               <Link href="#subjects" className="text-slate-600 hover:text-slate-900 font-medium transition-colors">
                 Subjects
               </Link>
+              <Link href="/blog" className="text-slate-600 hover:text-slate-900 font-medium transition-colors">
+                Blog
+              </Link>
               <Link href="/forum" className="text-slate-600 hover:text-slate-900 font-medium transition-colors">
                 Community
               </Link>
             </div>
             
+            {/* Desktop Auth Buttons */}
             <div className="hidden md:flex items-center space-x-4">
               <Link 
                 href="/login"
@@ -489,23 +501,72 @@ function HomePage() {
               </motion.div>
             </div>
 
-            {/* Mobile menu button */}
+            {/* Mobile Menu & Auth */}
             <div className="md:hidden flex items-center space-x-2">
               <Link 
                 href="/login"
-                className="text-slate-600 hover:text-slate-900 font-medium text-sm transition-colors"
+                className="text-slate-600 hover:text-slate-900 font-medium text-sm transition-colors px-2 py-1"
               >
                 Sign In
               </Link>
               <Link 
                 href="/signup"
-                className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-200"
+                className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:from-blue-600 hover:to-indigo-700 transition-all duration-200"
               >
                 Get Started
               </Link>
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                aria-label="Toggle mobile menu"
+              >
+                {showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        {showMobileMenu && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden bg-white border-t border-slate-200/50"
+          >
+            <div className="px-4 py-4 space-y-3">
+              <Link 
+                href="#features" 
+                onClick={() => setShowMobileMenu(false)}
+                className="block text-slate-600 hover:text-slate-900 font-medium py-2 px-3 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Features
+              </Link>
+              <Link 
+                href="#subjects" 
+                onClick={() => setShowMobileMenu(false)}
+                className="block text-slate-600 hover:text-slate-900 font-medium py-2 px-3 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Subjects
+              </Link>
+              <Link 
+                href="/blog" 
+                onClick={() => setShowMobileMenu(false)}
+                className="block text-slate-600 hover:text-slate-900 font-medium py-2 px-3 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Blog
+              </Link>
+              <Link 
+                href="/forum" 
+                onClick={() => setShowMobileMenu(false)}
+                className="block text-slate-600 hover:text-slate-900 font-medium py-2 px-3 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Community
+              </Link>
+            </div>
+          </motion.div>
+        )}
       </motion.nav>
 
       {/* Hero Section */}
@@ -525,18 +586,18 @@ function HomePage() {
                 className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-6"
               >
                 <Zap className="w-4 h-4 mr-2" />
-                Trusted by Students
+                Trusted by Nepal Students
               </motion.div>
               
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 leading-tight">
-                Master Your
+                Ace Nepal's
                 <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent block">
-                  Exams with AI
+                  Medical Entrance
                 </span>
               </h1>
               
               <p className="text-xl text-slate-600 mb-8 max-w-2xl">
-                Transform your exam preparation with our intelligent MCQ platform. Get personalized insights, practice with real exam conditions, and boost your confidence.
+                Prepare for MECEE-BL, IOE, TU, and other Nepal entrance exams with our comprehensive MCQ platform. Master Physics, Chemistry, Biology, and Mental Agility Tests.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -545,7 +606,7 @@ function HomePage() {
                     href="/signup"
                     className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center"
                   >
-                    Start Free Trial
+                    Start MECEE Prep
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Link>
                 </motion.div>
@@ -555,7 +616,7 @@ function HomePage() {
                     className="border-2 border-slate-300 text-slate-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-slate-400 hover:bg-slate-50 transition-all duration-200 flex items-center justify-center"
                   >
                     <Play className="w-5 h-5 mr-2" />
-                    Try Demo
+                    Practice Tests
                   </Link>
                 </motion.div>
               </div>
@@ -568,19 +629,19 @@ function HomePage() {
               >
                 <div className="text-center">
                   <div className="text-3xl font-bold text-slate-900">{stats.totalTests}</div>
-                  <div className="text-sm text-slate-600">Active Tests</div>
+                  <div className="text-sm text-slate-600">Mock Tests</div>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-slate-900">{stats.totalQuestions}</div>
-                  <div className="text-sm text-slate-600">Total Questions</div>
+                  <div className="text-sm text-slate-600">MECEE Questions</div>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-slate-900">{stats.successRate}</div>
-                  <div className="text-sm text-slate-600">Success Rate</div>
+                  <div className="text-sm text-slate-600">Merit List Rate</div>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-slate-900">{stats.avgImprovement}</div>
-                  <div className="text-sm text-slate-600">Avg Improvement</div>
+                  <div className="text-sm text-slate-600">Score Improvement</div>
                 </div>
               </motion.div>
             </motion.div>

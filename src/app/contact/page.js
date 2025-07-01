@@ -224,7 +224,7 @@ export default function ContactPage() {
                         value={formData.name}
                         onChange={handleInputChange}
                         required
-                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                         placeholder="Enter your full name"
                       />
                     </div>
@@ -242,7 +242,7 @@ export default function ContactPage() {
                         value={formData.email}
                         onChange={handleInputChange}
                         required
-                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                         placeholder="Enter your email"
                       />
                     </div>
@@ -261,7 +261,7 @@ export default function ContactPage() {
                       value={formData.subject}
                       onChange={handleInputChange}
                       required
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                       placeholder="Brief description of your inquiry"
                     />
                   </div>
@@ -296,7 +296,7 @@ export default function ContactPage() {
                     onChange={handleInputChange}
                     required
                     rows={6}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
                     placeholder="Please provide details about your inquiry..."
                   />
                 </div>

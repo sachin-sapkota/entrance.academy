@@ -293,7 +293,7 @@ export default function FeedbackPage() {
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-colors"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-colors"
                       placeholder="Your full name"
                     />
                   </div>
@@ -310,7 +310,7 @@ export default function FeedbackPage() {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-colors"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-colors"
                       placeholder="For follow-up if needed"
                     />
                   </div>
@@ -382,7 +382,7 @@ export default function FeedbackPage() {
                 onChange={handleInputChange}
                 required
                 rows={6}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-colors resize-none"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-colors resize-none"
                 placeholder="Tell us what you think about our platform, what you love, what could be improved, or any suggestions you have..."
               />
               <p className="text-xs text-slate-500 mt-1">This field is required</p>
