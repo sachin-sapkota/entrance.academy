@@ -77,19 +77,18 @@ export default function DashboardPage() {
   }, [dispatch, profile, router]);
 
   useEffect(() => {
-    // Load all data when user is available - separate effect to avoid infinite loops
     if (user?.id) {
       loadUserStats();
       loadLivePracticeSets();
       loadUpcomingTests();
       loadActiveSessions();
       
-      // Refresh active sessions every 30 seconds
-      const sessionsInterval = setInterval(loadActiveSessions, 30000);
+      // Refresh active sessions every 60 seconds
+      const sessionsInterval = setInterval(loadActiveSessions, 60000);
       
       return () => clearInterval(sessionsInterval);
     }
-  }, [user?.id]); // Only depend on user ID, not the full user object
+  }, [user?.id]); 
 
   const loadUserStats = async () => {
     if (!user?.id) return;

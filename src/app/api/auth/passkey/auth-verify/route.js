@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { supabase, supabaseAdmin } from '@/lib/supabase-server';
+import { supabaseServer } from '../../../../lib/supabase-server';
 
 export async function POST(request) {
   try {
@@ -15,7 +15,7 @@ export async function POST(request) {
     const credentialId = credential.id;
 
     // Find user with this credential
-    const { data: users, error: searchError } = await supabaseAdmin
+    const { data: users, error: searchError } = await supabaseServer
       .from('users')
       .select('id, email, passkey_credentials')
       .contains('passkey_credentials', [{ credentialId }]);
@@ -60,7 +60,7 @@ export async function POST(request) {
         : c
     );
 
-    await supabaseAdmin
+    await supabaseServer
       .from('users')
       .update({ 
         passkey_credentials: updatedCredentials,
