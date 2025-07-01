@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-server';
+import { supabaseServer } from '@/lib/supabase-server';
 
 // This endpoint can be called periodically to make tests live
 // It checks all scheduled tests and activates them if their time has come
@@ -8,7 +8,7 @@ export async function POST(request) {
     const now = new Date().toISOString();
     
     // Get all scheduled tests that should be live now
-    const { data: testsToActivate, error: fetchError } = await supabaseAdmin
+    const { data: testsToActivate, error: fetchError } = await supabaseServer
       .from('test_configurations')
       .select('*')
       .eq('test_type', 'scheduled')
@@ -38,7 +38,7 @@ export async function POST(request) {
         // 3. Set up the test sessions
         
         // For now, we'll just mark that the test is ready to be taken
-        const { data: updatedTest, error: updateError } = await supabaseAdmin
+        const { data: updatedTest, error: updateError } = await supabaseServer
           .from('test_configurations')
           .update({
             // Add any status fields if needed
@@ -67,7 +67,7 @@ export async function POST(request) {
     }
 
     // Also check for tests that should be closed (past available_until)
-    const { data: testsToClose, error: closeError } = await supabaseAdmin
+    const { data: testsToClose, error: closeError } = await supabaseServer
       .from('test_configurations')
       .select('*')
       .eq('test_type', 'scheduled')
@@ -76,7 +76,7 @@ export async function POST(request) {
 
     if (!closeError && testsToClose.length > 0) {
       for (const testConfig of testsToClose) {
-        await supabaseAdmin
+        await supabaseServer
           .from('test_configurations')
           .update({
             meta_data: {
@@ -113,7 +113,7 @@ export async function GET() {
   try {
     const now = new Date().toISOString();
     
-    const { data: upcomingTests, error } = await supabaseAdmin
+    const { data: upcomingTests, error } = await supabaseServer
       .from('test_configurations')
       .select('id, name, available_from, available_until, is_active')
       .eq('test_type', 'scheduled')

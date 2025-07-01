@@ -39,7 +39,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     // Check if WebAuthn is supported
-    setShowPasskey(isWebAuthnSupported());
+    const supported = isWebAuthnSupported();
+    console.log('🔍 WebAuthn supported:', supported);
+    setShowPasskey(supported);
   }, []);
 
   const handleSubmit = async (e) => {
@@ -68,20 +70,40 @@ export default function LoginPage() {
   };
 
   const handlePasskeySignIn = async () => {
+    console.log('🎯 Passkey button clicked!'); // Debug log
     setLoading(true);
     dispatch(clearError());
     
     try {
-      const { success, user, error } = await authenticateWithPasskey();
-      if (success && user) {
-        // Handle successful passkey authentication
-        router.push('/dashboard');
+      console.log('🚀 Starting passkey authentication...');
+      const result = await authenticateWithPasskey();
+      
+      console.log('📊 Passkey result:', result);
+      
+      if (result.success && result.user) {
+        if (result.session) {
+          // Session created successfully, redirect to dashboard
+          console.log('✅ Passkey login successful, redirecting...');
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 1000);
+        } else if (result.requiresRefresh) {
+          // Need to refresh the page to complete login
+          console.log('🔄 Refreshing page to complete login...');
+          window.location.reload();
+        } else {
+          // Success but no session, redirect anyway
+          console.log('✅ Passkey verified, redirecting...');
+          router.push('/dashboard');
+        }
       } else {
-        dispatch(setError(error || 'Passkey authentication failed'));
+        const errorMessage = result.error || 'Passkey authentication failed';
+        console.error('❌ Passkey authentication failed:', errorMessage);
+        dispatch(setError(errorMessage));
       }
     } catch (error) {
-      console.error('Passkey sign in error:', error);
-      dispatch(setError('Failed to sign in with passkey'));
+      console.error('💥 Passkey sign in error:', error);
+      dispatch(setError(`Failed to sign in with passkey: ${error.message}`));
     } finally {
       setLoading(false);
     }
@@ -289,16 +311,30 @@ export default function LoginPage() {
 
               {/* Passkey Sign In */}
               {showPasskey && (
-                <button
+                <motion.button
+                  type="button"
                   onClick={handlePasskeySignIn}
+                  onMouseEnter={() => console.log('🖱️ Passkey button hover')}
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.8, duration: 0.3 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{ 
+                    zIndex: 20, 
+                    position: 'relative',
+                    pointerEvents: loading ? 'none' : 'auto'
+                  }}
+                  className={`w-full flex items-center justify-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 group ${
+                    loading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md cursor-pointer'
+                  }`}
                 >
                   <Fingerprint className="w-5 h-5" />
                   <span className="font-medium">
-                    Sign in with Passkey
+                    {loading ? 'Authenticating...' : 'Sign in with Passkey'}
                   </span>
-                </button>
+                </motion.button>
               )}
             </motion.div>
           </div>

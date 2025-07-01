@@ -115,19 +115,54 @@ export default function ProfilePage() {
     if (!user) return;
 
     try {
-      // Load profile data from Supabase
-      const { data: userProfile, error } = await supabase
+      console.log('🔍 Loading user profile for:', user.id, user.email);
+      
+      // First try to load profile by user ID
+      let { data: userProfile, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error) {
+      console.log('📊 Profile query result:', { userProfile, error, hasError: !!error });
+
+      // If no profile found by ID, try to find by email
+      if (!userProfile && user.email) {
+        console.log('🔍 No profile found by ID, trying email lookup...');
+        
+        const { data: emailProfile, error: emailError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', user.email)
+          .single();
+
+        // Ignore "no rows found" error for email lookup too
+        if (!emailError || emailError.code === 'PGRST116') {
+          if (emailProfile) {
+            console.log('👤 Found existing profile by email');
+            
+            // Don't try to update the ID - just use the existing profile
+            // This avoids foreign key constraint issues
+            userProfile = emailProfile;
+            error = null;
+            console.log('✅ Using existing profile data without ID update');
+          } else {
+            console.log('⚠️ No profile found by email either, will create new profile');
+          }
+        } else {
+          console.error('❌ Error during email lookup:', emailError);
+        }
+      }
+
+      // Check if error has actual content (not just an empty object)
+      if (error && Object.keys(error).length > 0 && error.code !== 'PGRST116') {
         console.error('Error loading profile:', error);
+        setMessage({ type: 'error', text: 'Failed to load profile data' });
         return;
       }
 
       if (userProfile) {
+        console.log('✅ Profile data loaded:', userProfile);
         setProfileData({
           fullName: userProfile.full_name || '',
           email: userProfile.email || user.email || '',
@@ -166,22 +201,153 @@ export default function ProfilePage() {
             ...userProfile.notification_preferences
           }));
         }
-      }
 
-      // Load passkey settings
-      loadPasskeySettings();
+        // Load passkey settings using the correct user ID
+        loadPasskeySettings(userProfile.id);
+      } else {
+        console.log('⚠️ No profile data found, creating new profile...');
+        // If no profile exists, create one
+        const createProfileResult = await createUserProfile();
+        if (!createProfileResult) {
+          setMessage({ type: 'error', text: 'Failed to create user profile' });
+          return;
+        }
+        
+        // Load passkey settings for the new profile
+        loadPasskeySettings(user.id);
+      }
     } catch (error) {
       console.error('Error loading profile:', error);
+      setMessage({ type: 'error', text: 'Failed to load profile: ' + error.message });
     }
   };
 
-  const loadPasskeySettings = async () => {
+  const createUserProfile = async () => {
     try {
-      const { credentials, enabled } = await getUserPasskeys();
-      setPasskeyCredentials(credentials);
-      setPasskeyEnabled(enabled);
+      console.log('🆕 Creating new user profile for:', user.id, user.email);
+      
+      // Use upsert to handle potential conflicts
+      const { data, error } = await supabase
+        .from('users')
+        .upsert({
+          id: user.id,
+          email: user.email,
+          full_name: user.user_metadata?.full_name || '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'id',
+          ignoreDuplicates: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating/updating profile:', error);
+        
+        // If there's a conflict, try to handle it by updating the existing record
+        if (error.code === '23505') { // Unique constraint violation
+          console.log('🔄 Handling unique constraint violation...');
+          
+          // Try to update the existing record
+          const { data: updateData, error: updateError } = await supabase
+            .from('users')
+            .update({
+              full_name: user.user_metadata?.full_name || '',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id)
+            .select()
+            .single();
+
+          if (updateError) {
+            console.error('❌ Failed to update existing profile:', updateError);
+            return false;
+          }
+
+          console.log('✅ Updated existing profile:', updateData);
+          
+          // Update local state
+          setProfileData({
+            fullName: updateData.full_name || '',
+            email: updateData.email || user.email || '',
+            phone: updateData.phone || '',
+            dateOfBirth: updateData.date_of_birth || '',
+            gender: updateData.gender || '',
+            institution: updateData.institution || '',
+            gradeLevel: updateData.grade_level || '',
+            course: updateData.course || '',
+            bio: updateData.bio || '',
+            location: `${updateData.city || ''} ${updateData.country || ''}`.trim()
+          });
+
+          return true;
+        }
+        
+        return false;
+      }
+
+      console.log('✅ Profile created/updated:', data);
+      
+      // Update local state with new profile
+      setProfileData({
+        fullName: data.full_name || '',
+        email: data.email || user.email || '',
+        phone: data.phone || '',
+        dateOfBirth: data.date_of_birth || '',
+        gender: data.gender || '',
+        institution: data.institution || '',
+        gradeLevel: data.grade_level || '',
+        course: data.course || '',
+        bio: data.bio || '',
+        location: `${data.city || ''} ${data.country || ''}`.trim()
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error creating user profile:', error);
+      return false;
+    }
+  };
+
+  const loadPasskeySettings = async (profileUserId) => {
+    try {
+      // Use the profile user ID if provided, otherwise fallback to auth user ID
+      const userId = profileUserId || user?.id;
+      if (!userId) {
+        console.log('⚠️ No user ID available for passkey loading');
+        return;
+      }
+
+      console.log('🔐 Loading passkey settings for user ID:', userId);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('passkey_credentials, passkey_enabled')
+        .eq('id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading passkey settings:', error);
+        return;
+      }
+
+      if (data) {
+        setPasskeyCredentials(data.passkey_credentials || []);
+        setPasskeyEnabled(data.passkey_enabled || false);
+        console.log('✅ Passkey settings loaded:', { 
+          credentialsCount: data.passkey_credentials?.length || 0, 
+          enabled: data.passkey_enabled 
+        });
+      } else {
+        console.log('⚠️ No passkey data found for user');
+        setPasskeyCredentials([]);
+        setPasskeyEnabled(false);
+      }
     } catch (error) {
       console.error('Error loading passkey settings:', error);
+      setPasskeyCredentials([]);
+      setPasskeyEnabled(false);
     }
   };
 
@@ -417,23 +583,32 @@ export default function ProfilePage() {
   };
 
   const handleRemovePasskey = async (credentialId) => {
+    console.log('🗑️ Remove passkey called with ID:', credentialId);
+    console.log('🗑️ Type of credentialId:', typeof credentialId);
+    console.log('🗑️ Current passkey credentials:', passkeyCredentials);
+    
     if (!confirm('Are you sure you want to remove this passkey?')) return;
 
     setLoading(true);
     setMessage(null);
 
     try {
+      console.log('🚀 Calling removePasskeyCredential...');
       const { success, error } = await removePasskeyCredential(credentialId);
+      
+      console.log('📨 Response from removePasskeyCredential:', { success, error });
       
       if (success) {
         setMessage({ type: 'success', text: 'Passkey removed successfully!' });
+        console.log('🔄 Reloading passkey settings...');
         await loadPasskeySettings();
       } else {
+        console.error('❌ Failed to remove passkey:', error);
         setMessage({ type: 'error', text: error || 'Failed to remove passkey' });
       }
     } catch (error) {
-      console.error('Error removing passkey:', error);
-      setMessage({ type: 'error', text: 'Failed to remove passkey' });
+      console.error('💥 Exception in handleRemovePasskey:', error);
+      setMessage({ type: 'error', text: 'Failed to remove passkey: ' + error.message });
     } finally {
       setLoading(false);
     }
@@ -1038,8 +1213,8 @@ export default function ProfilePage() {
                         <div>
                           <p className="font-medium text-green-900">Phone Verified</p>
                           <p className="text-sm text-green-700">Your phone number has been verified</p>
-                </div>
-              </div>
+                        </div>
+                      </div>
                       <Check className="w-5 h-5 text-green-600" />
                     </div>
                   )}
@@ -1090,26 +1265,52 @@ export default function ProfilePage() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {passkeyCredentials.map((credential, index) => (
-                        <div key={credential.credentialId || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <Smartphone className="w-5 h-5 text-gray-600" />
-                            <div>
-                              <p className="font-medium text-gray-900">{credential.deviceName || 'Unknown Device'}</p>
-                              <p className="text-sm text-gray-600">
-                                Added {new Date(credential.createdAt).toLocaleDateString()}
-                              </p>
+                      {passkeyCredentials.map((credential, index) => {
+                        // Create a unique key from multiple sources
+                        const uniqueKey = credential.credentialId || credential.credentialIdBase64 || credential.id || `credential-${index}`;
+                        
+                        // For deletion, prefer base64 ID over raw credentialId object
+                        let displayId;
+                        if (credential.credentialIdBase64) {
+                          displayId = credential.credentialIdBase64;
+                        } else if (credential.id) {
+                          displayId = credential.id;
+                        } else {
+                          displayId = credential.credentialId; // Use raw object as fallback
+                        }
+                        
+                        console.log('🔍 Rendering credential:', {
+                          index,
+                          credential,
+                          uniqueKey,
+                          displayId,
+                          credentialId: credential.credentialId,
+                          credentialIdBase64: credential.credentialIdBase64,
+                          id: credential.id,
+                          displayIdType: typeof displayId
+                        });
+                        
+                        return (
+                          <div key={uniqueKey} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <Smartphone className="w-5 h-5 text-gray-600" />
+                              <div>
+                                <p className="font-medium text-gray-900">{credential.deviceName || 'Unknown Device'}</p>
+                                <p className="text-sm text-gray-600">
+                                  Added {new Date(credential.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
                             </div>
+                            <button
+                              onClick={() => handleRemovePasskey(displayId)}
+                              disabled={loading}
+                              className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-                          <button
-                            onClick={() => handleRemovePasskey(credential.credentialId)}
-                            disabled={loading}
-                            className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                       
                       <button
                         onClick={handleAddPasskey}

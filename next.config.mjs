@@ -1,10 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    turbo: {
-      // Add turbopack configuration if needed
-    },
-  },
+  turbopack: {},
   env: {
     // Ensure environment variables are available in the browser
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,

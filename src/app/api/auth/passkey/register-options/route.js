@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { generateRegistrationOptions } from '@simplewebauthn/server';
-import { supabase } from '@/lib/supabase-server';
+import { supabaseServer } from '@/lib/supabase-server';
 
 export async function POST(request) {
   try {
@@ -12,7 +12,7 @@ export async function POST(request) {
     }
 
     // Get user info
-    const { data: userProfile, error: userError } = await supabase
+    const { data: userProfile, error: userError } = await supabaseServer
       .from('users')
       .select('email, full_name')
       .eq('id', userId)
@@ -25,7 +25,23 @@ export async function POST(request) {
     // Generate registration options
     const rpName = 'Entrance.academy';
     const isDevelopment = process.env.NODE_ENV === 'development';
-    const rpID = isDevelopment ? 'localhost' : (process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : 'localhost');
+    
+    // Get the current request URL to determine the domain
+    const requestUrl = new URL(request.url);
+    const currentDomain = requestUrl.hostname;
+    
+    // For development, always use localhost regardless of the URL
+    // For production, use the actual domain from the request
+    const rpID = isDevelopment ? 'localhost' : currentDomain;
+    
+    console.log('🔍 Passkey registration config:', {
+      isDevelopment,
+      currentDomain,
+      rpID,
+      NODE_ENV: process.env.NODE_ENV,
+      requestUrl: request.url
+    });
+    
     const userID = userId;
     const userName = userProfile.email;
     const userDisplayName = userProfile.full_name || userProfile.email;
@@ -51,7 +67,7 @@ export async function POST(request) {
 
     // Store challenge temporarily (in production, use Redis or similar)
     // For now, we'll store it in the user's session
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseServer
       .from('users')
       .update({
         meta_data: {
