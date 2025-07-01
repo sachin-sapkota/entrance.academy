@@ -119,19 +119,23 @@ export default function LoginPage() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-            <motion.div 
-              className="flex items-center space-x-2"
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-            >
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-sm">E</span>
-              </div>
-              <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-                Entrance Academy
-              </h1>
-            </motion.div>
+            <Link href="/" className="flex items-center space-x-2">
+              <motion.div 
+                className="flex items-center space-x-2"
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                whileHover={{ scale: 1.05 }}
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <span className="text-white font-bold text-sm">E</span>
+                </div>
+                <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+                  <span className="hidden xs:inline">Entrance Academy</span>
+                  <span className="xs:hidden">EA</span>
+                </h1>
+              </motion.div>
+            </Link>
             
             <motion.div
               initial={{ x: 20, opacity: 0 }}

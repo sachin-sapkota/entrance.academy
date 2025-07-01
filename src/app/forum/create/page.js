@@ -229,7 +229,7 @@ export default function CreateTopicPage() {
                     value={formData.title}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors text-sm"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors text-sm"
                     placeholder="Enter a descriptive title..."
                   />
                 </div>
@@ -281,7 +281,7 @@ export default function CreateTopicPage() {
                     onChange={handleInputChange}
                     required
                     rows={6}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors resize-none text-sm"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors resize-none text-sm"
                     placeholder="Write your message here..."
                   />
                 </div>
@@ -298,7 +298,7 @@ export default function CreateTopicPage() {
                       name="tags"
                       value={formData.tags}
                       onChange={handleInputChange}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors text-sm"
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors text-sm"
                       placeholder="math, physics, tips..."
                     />
                   </div>
@@ -417,7 +417,7 @@ export default function CreateTopicPage() {
                   value={formData.title}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
                   placeholder="Enter a descriptive title for your topic..."
                 />
                 <p className="text-xs text-slate-500 mt-1">
@@ -472,7 +472,7 @@ export default function CreateTopicPage() {
                   onChange={handleInputChange}
                   required
                   rows={8}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors resize-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors resize-none"
                   placeholder="Write your message here... Be clear and detailed to help others understand your topic or question."
                 />
                 <p className="text-xs text-slate-500 mt-1">
@@ -492,7 +492,7 @@ export default function CreateTopicPage() {
                     name="tags"
                     value={formData.tags}
                     onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-500 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-600 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
                     placeholder="e.g., math, physics, study-tips (separate with commas)"
                   />
                 </div>

@@ -1,0 +1,51 @@
+User-agent: *
+Allow: /
+
+# Allow all major search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /debug/
+Disallow: /debug-auth/
+Disallow: /debug-session/
+Disallow: /test-session/
+Disallow: /phone-verify/
+Disallow: /auth/callback/
+
+# Disallow dynamic test content that shouldn't be indexed
+Disallow: /lobby/
+Disallow: /quiz/*?*
+Disallow: /test-upload/
+
+# Allow important public content
+Allow: /blog/
+Allow: /forum/
+Allow: /help/
+Allow: /faq/
+Allow: /contact/
+Allow: /exams/
+Allow: /live-tests/
+Allow: /upcoming-tests/
+Allow: /results/
+Allow: /solution/
+
+# Sitemap location
+Sitemap: https://entrance.academy/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Host directive
+Host: https://entrance.academy 

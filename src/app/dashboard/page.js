@@ -2,6 +2,7 @@
 
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { signOutUser, refreshUserProfile } from '../../store/slices/authSlice';
 import { fetchDomains } from '../../store/slices/questionsSlice';
 import { useEffect, useState } from 'react';
@@ -359,26 +360,50 @@ export default function DashboardPage() {
         <motion.header 
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="bg-white/80 backdrop-blur-sm border-b border-white/20 sticky top-0 z-50"
+          className="bg-white/95 backdrop-blur-md border-b border-slate-200/50 sticky top-0 z-50 shadow-sm safe-area-inset-top"
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-4">
             <div className="flex items-center justify-between">
-              <motion.div 
-                className="flex items-center space-x-2 sm:space-x-4"
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-              >
-                <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg sm:rounded-2xl flex items-center justify-center shadow-lg">
-                  <GraduationCap className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              {/* Logo and Brand */}
+              <div className="flex items-center space-x-3 sm:space-x-6">
+                <Link 
+                  href="/"
+                  className="flex items-center space-x-2 sm:space-x-3 hover:opacity-80 transition-opacity"
+                  title="Go to homepage"
+                >
+                  <motion.div 
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    whileHover={{ scale: 1.05 }}
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg"
+                  >
+                    <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </motion.div>
+                  <div className="hidden md:block">
+                    <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                      Entrance Academy
+                    </h1>
+                  </div>
+                  <div className="md:hidden">
+                    <h1 className="text-base font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                      EA
+                    </h1>
+                  </div>
+                </Link>
+                
+                {/* Dashboard Title - Desktop */}
+                <div className="hidden md:block w-px h-8 bg-slate-200"></div>
+                <div className="hidden sm:flex flex-col">
+                  <h2 className="text-base sm:text-lg font-semibold text-slate-800">Dashboard</h2>
+                  <p className="text-xs sm:text-sm text-slate-500 hidden md:block">Welcome back, {profile?.fullName || user?.email?.split('@')[0]}</p>
                 </div>
-                <div>
-                  <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                    <span className="hidden sm:inline">Entrance Academy </span>Dashboard
-                  </h1>
-                  <p className="text-xs sm:text-sm text-slate-600 hidden sm:block">Welcome back, {profile?.fullName || user?.email?.split('@')[0]}</p>
+
+                {/* Dashboard Title - Mobile */}
+                <div className="sm:hidden">
+                  <h2 className="text-base font-semibold text-slate-800">Dashboard</h2>
                 </div>
-              </motion.div>
+              </div>
               
               {/* User Avatar with Dropdown */}
               <motion.div 
@@ -389,7 +414,7 @@ export default function DashboardPage() {
               >
                 <button
                   onClick={() => setShowUserDropdown(!showUserDropdown)}
-                  className="flex items-center space-x-3 p-2 rounded-2xl bg-white/60 hover:bg-white/80 transition-all duration-200 shadow-sm border border-white/20 group"
+                  className="flex items-center space-x-2 sm:space-x-3 p-1 sm:p-2 rounded-lg sm:rounded-xl bg-white/70 hover:bg-white/90 transition-all duration-200 shadow-sm border border-slate-200/50 group"
                   aria-label="User menu"
                   aria-expanded={showUserDropdown}
                 >
@@ -398,7 +423,7 @@ export default function DashboardPage() {
                       <img 
                         src={profile.profile_image_url}
                         alt={profile?.fullName || 'User avatar'}
-                        className="w-12 h-12 rounded-2xl object-cover shadow-lg ring-2 ring-white/20 group-hover:ring-white/40 transition-all duration-200"
+                        className="w-7 h-7 sm:w-10 sm:h-10 rounded-md sm:rounded-lg object-cover shadow-md ring-2 ring-slate-200/50 group-hover:ring-slate-300/50 transition-all duration-200"
                         onError={(e) => {
                           e.target.style.display = 'none';
                           e.target.nextSibling.style.display = 'flex';
@@ -406,16 +431,17 @@ export default function DashboardPage() {
                       />
                     ) : null}
                     <div 
-                      className={`w-12 h-12 bg-gradient-to-br from-violet-500 via-purple-500 to-blue-500 rounded-2xl flex items-center justify-center text-white font-bold shadow-lg ring-2 ring-white/20 group-hover:ring-white/40 transition-all duration-200 ${profile?.profile_image_url ? 'hidden' : ''}`}
+                      className={`w-7 h-7 sm:w-10 sm:h-10 bg-gradient-to-br from-violet-500 via-purple-500 to-blue-500 rounded-md sm:rounded-lg flex items-center justify-center text-white font-bold shadow-md ring-2 ring-slate-200/50 group-hover:ring-slate-300/50 transition-all duration-200 ${profile?.profile_image_url ? 'hidden' : ''}`}
                     >
-                      {getUserInitials(profile?.fullName)}
+                      <span className="text-xs sm:text-sm">{getUserInitials(profile?.fullName)}</span>
                     </div>
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-sm">
+                    <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-white shadow-sm">
                       <div className="w-full h-full bg-green-400 rounded-full animate-pulse"></div>
                     </div>
                   </div>
                   
-                  <div className="text-left hidden sm:block">
+                  {/* User info - hidden on mobile and tablet, shown on desktop */}
+                  <div className="text-left hidden xl:block">
                     <p className="text-sm font-semibold text-slate-800 group-hover:text-slate-900 transition-colors">
                       {profile?.fullName || user?.email?.split('@')[0] || 'User'}
                     </p>
@@ -425,7 +451,9 @@ export default function DashboardPage() {
                       <p className="text-xs text-green-600 font-medium">Online</p>
                     </div>
                   </div>
-                  <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform group-hover:text-slate-700 ${showUserDropdown ? 'rotate-180' : ''}`} />
+                  
+                  {/* Dropdown chevron - smaller on mobile */}
+                  <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 text-slate-500 transition-transform group-hover:text-slate-700 ${showUserDropdown ? 'rotate-180' : ''}`} />
                 </button>
 
                 <AnimatePresence>
@@ -440,54 +468,73 @@ export default function DashboardPage() {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -10 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-64 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 py-2 z-50"
+                        className="absolute right-0 mt-1 sm:mt-2 w-52 sm:w-64 bg-white/98 backdrop-blur-md rounded-lg sm:rounded-xl shadow-xl border border-slate-200/50 py-2 z-50"
                       >
-                        <div className="px-4 py-3 border-b border-slate-100">
-                          <p className="font-medium text-slate-800">{profile?.fullName || user?.email}</p>
-                          <p className="text-sm text-slate-500">{user?.email}</p>
+                        <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-slate-100">
+                          <p className="font-semibold text-slate-800 truncate text-sm sm:text-base">{profile?.fullName || user?.email}</p>
+                          <p className="text-xs sm:text-sm text-slate-500 truncate">{user?.email}</p>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-xs text-green-600 font-medium">Online</span>
+                          </div>
                         </div>
                         
-                        <div className="py-2">
+                        <div className="py-1 sm:py-2">
                           <button 
-                            onClick={() => router.push('/profile')}
-                            className="w-full px-4 py-2 text-left flex items-center space-x-3 hover:bg-slate-50 transition-colors"
+                            onClick={() => {
+                              setShowUserDropdown(false);
+                              router.push('/profile');
+                            }}
+                            className="w-full px-3 sm:px-4 py-2.5 sm:py-2.5 text-left flex items-center space-x-3 hover:bg-slate-50 active:bg-slate-100 transition-colors"
                           >
-                            <User className="w-4 h-4 text-slate-500" />
-                            <span className="text-slate-700">My Profile</span>
+                            <User className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                            <span className="text-slate-700 font-medium text-sm sm:text-base">My Profile</span>
                           </button>
                           
                           <button 
-                            onClick={() => router.push('/exams')}
-                            className="w-full px-4 py-2 text-left flex items-center space-x-3 hover:bg-slate-50 transition-colors"
+                            onClick={() => {
+                              setShowUserDropdown(false);
+                              router.push('/exams');
+                            }}
+                            className="w-full px-3 sm:px-4 py-2.5 sm:py-2.5 text-left flex items-center space-x-3 hover:bg-slate-50 active:bg-slate-100 transition-colors"
                           >
-                            <FileText className="w-4 h-4 text-slate-500" />
-                            <span className="text-slate-700">My Exams</span>
+                            <FileText className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                            <span className="text-slate-700 font-medium text-sm sm:text-base">My Exams</span>
                           </button>
                           
                           <button 
-                            onClick={() => router.push('/help')}
-                            className="w-full px-4 py-2 text-left flex items-center space-x-3 hover:bg-slate-50 transition-colors"
+                            onClick={() => {
+                              setShowUserDropdown(false);
+                              router.push('/results');
+                            }}
+                            className="w-full px-3 sm:px-4 py-2.5 sm:py-2.5 text-left flex items-center space-x-3 hover:bg-slate-50 active:bg-slate-100 transition-colors"
                           >
-                            <HelpCircle className="w-4 h-4 text-slate-500" />
-                            <span className="text-slate-700">Help & Support</span>
+                            <Trophy className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                            <span className="text-slate-700 font-medium text-sm sm:text-base">My Results</span>
                           </button>
                           
                           <button 
-                            onClick={() => router.push('/settings')}
-                            className="w-full px-4 py-2 text-left flex items-center space-x-3 hover:bg-slate-50 transition-colors"
+                            onClick={() => {
+                              setShowUserDropdown(false);
+                              router.push('/help');
+                            }}
+                            className="w-full px-3 sm:px-4 py-2.5 sm:py-2.5 text-left flex items-center space-x-3 hover:bg-slate-50 active:bg-slate-100 transition-colors"
                           >
-                            <Settings className="w-4 h-4 text-slate-500" />
-                            <span className="text-slate-700">Settings</span>
+                            <HelpCircle className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                            <span className="text-slate-700 font-medium text-sm sm:text-base">Help & Support</span>
                           </button>
                         </div>
                         
-                        <div className="border-t border-slate-100 pt-2">
+                        <div className="border-t border-slate-100 pt-1 sm:pt-2">
                           <button
-                            onClick={handleSignOut}
-                            className="w-full px-4 py-2 text-left flex items-center space-x-3 hover:bg-red-50 transition-colors text-red-600"
+                            onClick={() => {
+                              setShowUserDropdown(false);
+                              handleSignOut();
+                            }}
+                            className="w-full px-3 sm:px-4 py-2.5 sm:py-2.5 text-left flex items-center space-x-3 hover:bg-red-50 active:bg-red-100 transition-colors text-red-600"
                           >
-                            <LogOut className="w-4 h-4" />
-                            <span>Sign Out</span>
+                            <LogOut className="w-4 h-4 flex-shrink-0" />
+                            <span className="font-medium text-sm sm:text-base">Sign Out</span>
                           </button>
                         </div>
                       </motion.div>

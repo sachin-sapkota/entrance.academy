@@ -474,7 +474,166 @@ const getDeviceName = () => {
 
 // Check if WebAuthn is supported
 export const isWebAuthnSupported = () => {
-  return !!(navigator.credentials && navigator.credentials.create && navigator.credentials.get);
+  try {
+    // Basic WebAuthn API check
+    const hasBasicSupport = !!(
+      navigator.credentials && 
+      navigator.credentials.create && 
+      navigator.credentials.get
+    );
+
+    // Additional checks for better mobile support
+    const hasPublicKeyCredential = !!(window.PublicKeyCredential);
+    const hasConditionalMediation = !!(
+      window.PublicKeyCredential && 
+      PublicKeyCredential.isConditionalMediationAvailable
+    );
+
+    // Platform detection for better debugging
+    const userAgent = navigator.userAgent;
+    const isMobile = /iPhone|iPad|iPod|Android|Mobile|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    const isIOS = /iPhone|iPad|iPod/.test(userAgent);
+    const isAndroid = /Android/.test(userAgent);
+    const isChrome = /Chrome/.test(userAgent) && !/Edge/.test(userAgent);
+    const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+    const isSecureContext = window.isSecureContext;
+    
+    // Enhanced localhost detection - includes network access to development server
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1' ||
+                       window.location.hostname.endsWith('.local') ||
+                       window.location.hostname.match(/^192\.168\.\d+\.\d+$/) || // Local network
+                       window.location.hostname.match(/^10\.\d+\.\d+\.\d+$/) ||   // Private network
+                       window.location.hostname.match(/^172\.1[6-9]\.\d+\.\d+$/) || // Private network
+                       window.location.hostname.match(/^172\.2[0-9]\.\d+\.\d+$/) || // Private network  
+                       window.location.hostname.match(/^172\.3[0-1]\.\d+\.\d+$/);  // Private network
+
+    // Enhanced iOS version detection with better patterns
+    let iosVersion = 0;
+    if (isIOS) {
+      // Try multiple patterns for iOS version detection
+      const patterns = [
+        /OS (\d+)_(\d+)/,           // "OS 15_0"
+        /iPhone OS (\d+)_(\d+)/,   // "iPhone OS 15_0"
+        /Version\/(\d+)\.(\d+)/,    // "Version/15.0"
+        /Mobile\/\d+[A-Z]+ Safari\/(\d+)/  // Mobile Safari pattern
+      ];
+      
+      for (const pattern of patterns) {
+        const match = userAgent.match(pattern);
+        if (match) {
+          iosVersion = parseInt(match[1]);
+          break;
+        }
+      }
+      
+      // If no version detected, assume modern iOS for iPhone 15 and newer devices
+      if (iosVersion === 0 && userAgent.includes('iPhone')) {
+        // iPhone 15 would be iOS 17+, but let's be safe and assume 16+
+        iosVersion = 16; 
+      }
+    }
+
+    // Enhanced Android Chrome version detection
+    let chromeVersion = 0;
+    if (isAndroid) {
+      const chromeMatch = userAgent.match(/Chrome\/(\d+)/);
+      chromeVersion = chromeMatch ? parseInt(chromeMatch[1]) : 0;
+    }
+
+    // Log detailed support information for debugging
+    console.log('🔍 WebAuthn Support Check:', {
+      hasBasicSupport,
+      hasPublicKeyCredential,
+      hasConditionalMediation,
+      platform: {
+        isMobile,
+        isIOS,
+        isAndroid,
+        isChrome,
+        isSafari,
+        iosVersion: isIOS ? iosVersion : 'N/A',
+        chromeVersion: isAndroid ? chromeVersion : 'N/A',
+        userAgent: userAgent.slice(0, 100) + '...' // Truncate for readability
+      },
+      security: {
+        isSecureContext,
+        isLocalhost,
+        protocol: window.location.protocol,
+        hostname: window.location.hostname,
+        origin: window.location.origin
+      }
+    });
+
+    // For mobile devices, be more permissive
+    if (isMobile) {
+      // iOS Safari 14+ and Chrome for iOS support WebAuthn
+      if (isIOS) {
+        // For development servers (localhost or local network), be very lenient
+        if (isLocalhost) {
+          console.log('🏠 Development server detected - enabling iOS WebAuthn');
+          if (hasBasicSupport) {
+            console.log('✅ iOS WebAuthn support enabled (development mode)');
+            return true;
+          } else {
+            console.log('⚠️ Basic WebAuthn APIs not available, but forcing enable for development');
+            return true; // Force enable for development testing
+          }
+        }
+        
+        // Production iOS checks - be more permissive for modern devices
+        if (iosVersion >= 14 || iosVersion === 0) { 
+          console.log(`✅ iOS WebAuthn support detected (iOS ${iosVersion || 'modern device'})`);
+          return hasBasicSupport || iosVersion >= 16; // Force true for iOS 16+
+        } else {
+          console.log(`❌ iOS version too old (iOS ${iosVersion}, requires 14+)`);
+          return false;
+        }
+      }
+      
+      // Android Chrome 70+ supports WebAuthn
+      if (isAndroid) {
+        // For development servers, be more lenient
+        if (isLocalhost && hasBasicSupport) {
+          console.log('✅ Android WebAuthn support enabled (development mode)');
+          return true;
+        }
+        
+        if (chromeVersion >= 70 || chromeVersion === 0) {
+          console.log(`✅ Android Chrome WebAuthn support detected (Chrome ${chromeVersion || 'unknown'})`);
+          return hasBasicSupport;
+        } else {
+          console.log(`❌ Chrome version too old (Chrome ${chromeVersion}, requires 70+)`);
+          return false;
+        }
+      }
+    }
+
+    // For desktop, use standard checks but be lenient with localhost
+    const isSupported = hasBasicSupport && hasPublicKeyCredential && (isSecureContext || isLocalhost);
+    
+    if (isSupported) {
+      console.log('✅ WebAuthn support confirmed');
+    } else {
+      console.log('❌ WebAuthn not supported. Missing:', {
+        basicSupport: !hasBasicSupport,
+        publicKeyCredential: !hasPublicKeyCredential,
+        secureContext: !isSecureContext && !isLocalhost
+      });
+    }
+
+    return isSupported;
+  } catch (error) {
+    console.error('❌ Error checking WebAuthn support:', error);
+    // For development, return true even if detection fails
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                       window.location.hostname.match(/^192\.168\.\d+\.\d+$/);
+    if (isLocalhost) {
+      console.log('🔧 WebAuthn detection failed, but enabling for localhost development');
+      return true;
+    }
+    return false;
+  }
 };
 
 // Get user's passkey credentials

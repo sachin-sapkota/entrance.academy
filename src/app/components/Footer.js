@@ -26,28 +26,28 @@ export default function Footer() {
 
   const footerLinks = {
     platform: [
-      { name: 'Dashboard', href: '/dashboard' },
-      { name: 'Available Tests', href: '/live-tests' },
-      { name: 'My Exams', href: '/exams' },
-      { name: 'Upcoming Tests', href: '/upcoming-tests' },
+      { name: 'MECEE-BL Tests', href: '/live-tests' },
+      { name: 'IOE Practice', href: '/live-tests' },
+      { name: 'TU Mock Exams', href: '/upcoming-tests' },
+      { name: 'My Results', href: '/results' },
     ],
     support: [
-      { name: 'Help Center', href: '/help' },
-      { name: 'FAQ', href: '/faq' },
-      { name: 'Contact Us', href: '/contact' },
+      { name: 'Exam Guides', href: '/blog' },
+      { name: 'MECEE FAQ', href: '/faq' },
+      { name: 'Contact Support', href: '/contact' },
       { name: 'Report Issue', href: '/report-issue' },
     ],
     community: [
-      { name: 'Discussion Forum', href: '/forum' },
-      { name: 'Share Feedback', href: '/feedback' },
-      { name: 'Study Resources', href: '/help' },
-      { name: 'Join Community', href: '/forum/create' },
+      { name: 'Nepal Students Forum', href: '/forum' },
+      { name: 'Study Groups', href: '/forum' },
+      { name: 'Entrance Tips', href: '/blog' },
+      { name: 'Join Discussion', href: '/forum/create' },
     ],
     legal: [
       { name: 'Privacy Policy', href: '/help#privacy' },
       { name: 'Terms of Service', href: '/help#terms' },
-      { name: 'Help & Support', href: '/help' },
-      { name: 'Community Guidelines', href: '/help#guidelines' },
+      { name: 'Exam Guidelines', href: '/help' },
+      { name: 'Fair Use Policy', href: '/help#guidelines' },
     ]
   };
 
@@ -79,8 +79,8 @@ export default function Footer() {
                 <span className="text-xl sm:text-2xl font-bold">Entrance Academy</span>
               </div>
               <p className="text-slate-300 leading-relaxed mb-6 text-sm sm:text-base">
-                Empowering students with comprehensive online testing and assessment tools. 
-                Practice, learn, and excel with our advanced MCQ platform designed for academic success.
+                Your trusted partner for Nepal entrance exam preparation. Master MECEE-BL, IOE, TU entrance 
+                exams with comprehensive MCQ practice aligned with Medical Education Commission syllabus.
               </p>
               
               {/* Contact Info */}
@@ -95,7 +95,7 @@ export default function Footer() {
                 </div>
                 <div className="flex items-start space-x-3">
                   <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <span>Bharatpur Chitwan</span>
+                  <span>Bharatpur, Chitwan, Nepal</span>
                 </div>
               </div>
             </motion.div>
@@ -111,7 +111,7 @@ export default function Footer() {
           >
             <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center">
               <BookOpen className="w-4 h-4 mr-2" />
-              Platform
+              Entrance Exams
             </h3>
             <ul className="space-y-2 sm:space-y-3">
               {footerLinks.platform.map((link) => (
@@ -137,7 +137,7 @@ export default function Footer() {
           >
             <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center">
               <HelpCircle className="w-4 h-4 mr-2" />
-              Support
+              Study Resources
             </h3>
             <ul className="space-y-2 sm:space-y-3">
               {footerLinks.support.map((link) => (
@@ -216,9 +216,9 @@ export default function Footer() {
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start lg:items-center">
             <div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-2">Stay Updated</h3>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">MECEE-BL Updates</h3>
               <p className="text-slate-300 text-sm sm:text-base">
-                Get the latest updates about new features, study tips, and platform improvements.
+                Get latest MECEE-BL exam notifications, new question sets, and Nepal entrance exam tips.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
@@ -254,7 +254,7 @@ export default function Footer() {
               <div className="flex items-center justify-center sm:justify-start space-x-1">
                 <span>Made with</span>
                 <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-red-500 fill-current" />
-                <span>for students worldwide</span>
+                <span>for Nepal students</span>
               </div>
             </motion.div>
 

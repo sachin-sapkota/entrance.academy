@@ -107,8 +107,53 @@ export default function ProfilePage() {
   }, [user]);
 
   useEffect(() => {
-    // Check if WebAuthn is supported
-    setShowWebAuthn(isWebAuthnSupported());
+    if (typeof window !== 'undefined') {
+      // Check WebAuthn support with detailed logging
+      const supported = isWebAuthnSupported();
+      
+      // Allow manual override for testing (check URL params or localStorage)
+      const forceEnable = new URLSearchParams(window.location.search).get('enablePasskeys') === 'true' ||
+                         localStorage.getItem('forceEnablePasskeys') === 'true';
+      
+      // Auto-enable for iPhones on development servers
+      const isIPhone = /iPhone/.test(navigator.userAgent);
+      const isDevelopmentServer = window.location.hostname.match(/^192\.168\.\d+\.\d+$/) || 
+                                  window.location.hostname === 'localhost' ||
+                                  window.location.hostname === '127.0.0.1';
+      const autoEnableForDev = isIPhone && isDevelopmentServer;
+      
+      const finalSupport = supported || forceEnable || autoEnableForDev;
+      
+      console.log('🔍 Passkey support status:', {
+        detected: supported,
+        forced: forceEnable,
+        autoEnabledForDev: autoEnableForDev,
+        final: finalSupport,
+        device: {
+          isIPhone,
+          isDevelopmentServer,
+          hostname: window.location.hostname
+        },
+        userAgent: navigator.userAgent.slice(0, 100) + '...'
+      });
+      
+      setShowWebAuthn(finalSupport);
+      
+      // Show appropriate notifications
+      if (autoEnableForDev && !supported) {
+        console.log('📱 iPhone detected on development server - auto-enabling passkeys');
+        setMessage({
+          type: 'info',
+          text: 'Passkeys auto-enabled for iPhone development testing'
+        });
+      } else if (forceEnable && !supported) {
+        console.log('⚠️ Passkeys force-enabled for testing (detection failed)');
+        setMessage({
+          type: 'warning',
+          text: 'Passkeys enabled for testing - device support not confirmed'
+        });
+      }
+    }
   }, []);
 
   const loadUserProfile = async () => {
@@ -1220,6 +1265,94 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
+
+              {/* WebAuthn Debug Section - Show on mobile for troubleshooting */}
+              {!showWebAuthn && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 sm:p-6">
+                  <div className="flex items-start space-x-3">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-yellow-800 mb-2">
+                        Passkey Support Not Detected
+                      </h3>
+                      
+                      {/iPhone/.test(navigator.userAgent) ? (
+                        <div>
+                          <p className="text-sm text-yellow-700 mb-3">
+                            Your iPhone should support passkeys! The detection might have failed.
+                          </p>
+                          <div className="mb-3 p-2 bg-blue-50 rounded text-sm text-blue-700">
+                            <strong>iPhone 15 Users:</strong> Your device definitely supports passkeys. 
+                            Try enabling them manually below or check your Safari settings.
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-yellow-700 mb-3">
+                          Your device or browser may not support passkeys, or the detection failed. 
+                          Check the browser console for detailed information.
+                        </p>
+                      )}
+                      
+                      <div className="space-y-2">
+                        <p className="text-xs text-yellow-600">
+                          <strong>Supported on:</strong>
+                        </p>
+                        <ul className="text-xs text-yellow-600 list-disc list-inside ml-4 space-y-1">
+                          <li>iPhone/iPad: iOS 16+ with Safari or Chrome</li>
+                          <li>Android: Chrome 70+ or supported browsers</li>
+                          <li>Desktop: Modern browsers with HTTPS</li>
+                        </ul>
+                        
+                        <div className="mt-3 p-2 bg-yellow-100 rounded text-xs text-yellow-700">
+                          <strong>iPhone Users:</strong> Make sure you're using Safari or Chrome, 
+                          and have Face ID or Touch ID enabled in Settings.
+                        </div>
+                      </div>
+                      
+                      {/* More prominent mobile buttons */}
+                      <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                        <button
+                          onClick={() => {
+                            localStorage.setItem('forceEnablePasskeys', 'true');
+                            setShowWebAuthn(true);
+                            setMessage({
+                              type: 'info',
+                              text: 'Passkeys manually enabled for testing. Reload page to reset.'
+                            });
+                          }}
+                          className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded-lg font-medium transition-colors text-sm text-center"
+                        >
+                          🔓 Enable Passkeys Anyway
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            console.log('🔍 Manual WebAuthn Support Check:');
+                            const support = isWebAuthnSupported();
+                            setMessage({
+                              type: support ? 'success' : 'error',
+                              text: support ? 'WebAuthn support detected!' : 'WebAuthn not supported on this device/browser'
+                            });
+                            
+                            // If support is now detected, enable it
+                            if (support) {
+                              setShowWebAuthn(true);
+                            }
+                          }}
+                          className="flex-1 border border-yellow-300 text-yellow-700 hover:bg-yellow-100 px-4 py-3 rounded-lg font-medium transition-colors text-sm text-center"
+                        >
+                          🔍 Check Support
+                        </button>
+                      </div>
+                      
+                      {/* Quick testing URL for mobile */}
+                      <div className="mt-3 p-2 bg-gray-100 rounded text-xs">
+                        <strong>Quick Test:</strong> Add <code className="bg-gray-200 px-1 rounded">?enablePasskeys=true</code> to the URL
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Passkey Authentication */}
               {showWebAuthn && (
