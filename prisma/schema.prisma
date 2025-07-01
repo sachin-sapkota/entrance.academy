@@ -1,0 +1,369 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// Enhanced MCQ Test Platform Prisma Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  super_admin
+  admin
+  instructor
+  student
+  guest
+}
+
+enum TestStatus {
+  not_started
+  in_progress
+  submitted
+  evaluated
+  expired
+}
+
+enum DifficultyLevel {
+  very_easy
+  easy
+  medium
+  hard
+  very_hard
+}
+
+enum QuestionType {
+  single_choice
+  multiple_choice
+  true_false
+  numerical
+}
+
+enum PerformanceCategory {
+  excellent
+  good
+  average
+  below_average
+  poor
+}
+
+// Models
+model User {
+  id                String    @id @db.Uuid
+  email             String    @unique
+  fullName          String?   @map("full_name")
+  role              UserRole  @default(student)
+  studentId         String?   @unique @map("student_id")
+  institution       String?
+  gradeLevel        String?   @map("grade_level")
+  phone             String?
+  dateOfBirth       DateTime? @map("date_of_birth") @db.Date
+  profileImageUrl   String?   @map("profile_image_url")
+  isActive          Boolean   @default(true) @map("is_active")
+  preferredLanguage String    @default("en") @map("preferred_language")
+  timezone          String    @default("UTC")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastLoginAt       DateTime? @map("last_login_at") @db.Timestamptz(6)
+  loginCount        Int       @default(0) @map("login_count")
+
+  // Relations
+  tests                     Test[]
+  questionsCreated          Question[]              @relation("QuestionCreator")
+  questionsModified         Question[]              @relation("QuestionModifier")
+  testConfigurationsCreated TestConfiguration[]
+  userPerformanceAnalytics  UserPerformanceAnalytics[]
+  predictiveAnalytics       PredictiveAnalytics[]
+
+  @@map("users")
+}
+
+model Domain {
+  id                       Int       @id @default(autoincrement())
+  name                     String    @unique
+  code                     String    @unique
+  description              String?
+  iconUrl                  String?   @map("icon_url")
+  colorCode                String    @default("#3B82F6") @map("color_code")
+  isActive                 Boolean   @default(true) @map("is_active")
+  difficultyWeight         Decimal   @default(1.0) @map("difficulty_weight") @db.Decimal(3, 2)
+  negativeMarkingRatio     Decimal   @default(0.25) @map("negative_marking_ratio") @db.Decimal(3, 2)
+  passingPercentage        Decimal   @default(0.40) @map("passing_percentage") @db.Decimal(3, 2)
+  totalQuestionsAvailable  Int       @default(0) @map("total_questions_available")
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  questions                Question[]
+  questionCategories       QuestionCategory[]
+  userPerformanceAnalytics UserPerformanceAnalytics[]
+
+  @@map("domains")
+}
+
+model QuestionCategory {
+  id          Int      @id @default(autoincrement())
+  domainId    Int      @map("domain_id")
+  name        String
+  description String?
+  weight      Decimal  @default(1.0) @db.Decimal(3, 2)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  domain    Domain     @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  questions Question[]
+
+  @@map("question_categories")
+}
+
+model Question {
+  id                   Int              @id @default(autoincrement())
+  domainId             Int              @map("domain_id")
+  categoryId           Int?             @map("category_id")
+  questionType         QuestionType     @default(single_choice) @map("question_type")
+  difficultyLevel      DifficultyLevel  @default(medium) @map("difficulty_level")
+  text                 String
+  options              Json // JSONB in PostgreSQL
+  correctAnswer        Json             @map("correct_answer") // JSONB in PostgreSQL
+  explanation          String?
+  hint                 String?
+  referenceMaterial    String?          @map("reference_material")
+  imageUrl             String?          @map("image_url")
+  videoUrl             String?          @map("video_url")
+  audioUrl             String?          @map("audio_url")
+  totalAttempts        Int              @default(0) @map("total_attempts")
+  correctAttempts      Int              @default(0) @map("correct_attempts")
+  averageTimeSpent     Decimal          @default(0) @map("average_time_spent") @db.Decimal(6, 2)
+  difficultyScore      Decimal          @default(0.5) @map("difficulty_score") @db.Decimal(3, 2)
+  discriminationIndex  Decimal          @default(0) @map("discrimination_index") @db.Decimal(3, 2)
+  tags                 String[]
+  estimatedTime        Int              @default(60) @map("estimated_time")
+  points               Decimal          @default(1.0) @db.Decimal(4, 2)
+  negativePoints       Decimal          @default(0.25) @map("negative_points") @db.Decimal(4, 2)
+  createdBy            String?          @map("created_by") @db.Uuid
+  isActive             Boolean          @default(true) @map("is_active")
+  isVerified           Boolean          @default(false) @map("is_verified")
+  lastModifiedBy       String?          @map("last_modified_by") @db.Uuid
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  domain           Domain             @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  category         QuestionCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  creator          User?              @relation("QuestionCreator", fields: [createdBy], references: [id])
+  lastModifier     User?              @relation("QuestionModifier", fields: [lastModifiedBy], references: [id])
+  attempts         Attempt[]          @relation("QuestionAttempts")
+  questionAnalytics QuestionAnalytics[]
+
+  @@map("questions")
+}
+
+model TestConfiguration {
+  id                        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name                      String
+  description               String?
+  durationMinutes           Int       @default(120) @map("duration_minutes")
+  totalQuestions            Int       @default(100) @map("total_questions")
+  questionsPerPage          Int       @default(20) @map("questions_per_page")
+  passingPercentage         Decimal   @default(0.40) @map("passing_percentage") @db.Decimal(3, 2)
+  domainDistribution        Json      @default("{}") @map("domain_distribution") // JSONB
+  difficultyDistribution    Json      @default("{\"easy\": 0.3, \"medium\": 0.5, \"hard\": 0.2}") @map("difficulty_distribution") // JSONB
+  enableNegativeMarking     Boolean   @default(true) @map("enable_negative_marking")
+  negativeMarkingRatio      Decimal   @default(0.25) @map("negative_marking_ratio") @db.Decimal(3, 2)
+  partialMarkingEnabled     Boolean   @default(false) @map("partial_marking_enabled")
+  shuffleQuestions          Boolean   @default(true) @map("shuffle_questions")
+  shuffleOptions            Boolean   @default(true) @map("shuffle_options")
+  allowReview               Boolean   @default(true) @map("allow_review")
+  allowQuestionSkip         Boolean   @default(true) @map("allow_question_skip")
+  showTimer                 Boolean   @default(true) @map("show_timer")
+  autoSubmit                Boolean   @default(true) @map("auto_submit")
+  showResultImmediately     Boolean   @default(true) @map("show_result_immediately")
+  showCorrectAnswers        Boolean   @default(true) @map("show_correct_answers")
+  showExplanations          Boolean   @default(true) @map("show_explanations")
+  showScoreBreakdown        Boolean   @default(true) @map("show_score_breakdown")
+  preventCopyPaste          Boolean   @default(true) @map("prevent_copy_paste")
+  preventRightClick         Boolean   @default(true) @map("prevent_right_click")
+  fullscreenMode            Boolean   @default(false) @map("fullscreen_mode")
+  isPublic                  Boolean   @default(false) @map("is_public")
+  requiresApproval          Boolean   @default(false) @map("requires_approval")
+  maxAttemptsPerUser        Int       @default(1) @map("max_attempts_per_user")
+  startTime                 DateTime? @map("start_time") @db.Timestamptz(6)
+  endTime                   DateTime? @map("end_time") @db.Timestamptz(6)
+  createdBy                 String?   @map("created_by") @db.Uuid
+  isActive                  Boolean   @default(true) @map("is_active")
+  createdAt                 DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  creator User?  @relation(fields: [createdBy], references: [id])
+  tests   Test[]
+
+  @@map("test_configurations")
+}
+
+model Test {
+  id                       String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId                   String               @map("user_id") @db.Uuid
+  testConfigId             String?              @map("test_config_id") @db.Uuid
+  testName                 String               @map("test_name")
+  testType                 String               @default("practice") @map("test_type")
+  attemptNumber            Int                  @default(1) @map("attempt_number")
+  status                   TestStatus           @default(not_started)
+  startedAt                DateTime?            @map("started_at") @db.Timestamptz(6)
+  submittedAt              DateTime?            @map("submitted_at") @db.Timestamptz(6)
+  completedAt              DateTime?            @map("completed_at") @db.Timestamptz(6)
+  timeSpentSeconds         Int                  @default(0) @map("time_spent_seconds")
+  timeRemainingSeconds     Int?                 @map("time_remaining_seconds")
+  questions                Json // JSONB - Array of question IDs with order
+  totalQuestions           Int                  @map("total_questions")
+  attemptedQuestions       Int                  @default(0) @map("attempted_questions")
+  unattemptedQuestions     Int                  @default(0) @map("unattempted_questions")
+  correctAnswers           Int                  @default(0) @map("correct_answers")
+  wrongAnswers             Int                  @default(0) @map("wrong_answers")
+  rawScore                 Decimal              @default(0) @map("raw_score") @db.Decimal(6, 2)
+  negativeMarks            Decimal              @default(0) @map("negative_marks") @db.Decimal(6, 2)
+  finalScore               Decimal              @default(0) @map("final_score") @db.Decimal(6, 2)
+  percentage               Decimal              @default(0) @db.Decimal(5, 2)
+  domainScores             Json                 @default("{}") @map("domain_scores") // JSONB
+  categoryScores           Json                 @default("{}") @map("category_scores") // JSONB
+  difficultyScores         Json                 @default("{}") @map("difficulty_scores") // JSONB
+  performanceCategory      PerformanceCategory? @map("performance_category")
+  predictedFinalScore      Decimal?             @map("predicted_final_score") @db.Decimal(5, 2)
+  confidenceScore          Decimal?             @map("confidence_score") @db.Decimal(3, 2)
+  ipAddress                String?              @map("ip_address") @db.Inet
+  userAgent                String?              @map("user_agent")
+  browserFingerprint       String?              @map("browser_fingerprint")
+  tabSwitchCount           Int                  @default(0) @map("tab_switch_count")
+  copyPasteAttempts        Int                  @default(0) @map("copy_paste_attempts")
+  suspiciousActivityCount  Int                  @default(0) @map("suspicious_activity_count")
+  createdAt                DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  testConfiguration   TestConfiguration?    @relation(fields: [testConfigId], references: [id])
+  attempts            Attempt[]             @relation("TestAttempts")
+  predictiveAnalytics PredictiveAnalytics[]
+
+  @@map("tests")
+}
+
+model Attempt {
+  id                    String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  testId                String    @map("test_id") @db.Uuid
+  questionId            Int       @map("question_id")
+  selectedAnswer        Json?     @map("selected_answer") // JSONB
+  isCorrect             Boolean?  @map("is_correct")
+  isPartiallyCorrect    Boolean   @default(false) @map("is_partially_correct")
+  pointsEarned          Decimal   @default(0) @map("points_earned") @db.Decimal(4, 2)
+  pointsDeducted        Decimal   @default(0) @map("points_deducted") @db.Decimal(4, 2)
+  timeSpentSeconds      Int       @default(0) @map("time_spent_seconds")
+  firstInteractionAt    DateTime? @map("first_interaction_at") @db.Timestamptz(6)
+  lastInteractionAt     DateTime? @map("last_interaction_at") @db.Timestamptz(6)
+  interactionCount      Int       @default(0) @map("interaction_count")
+  optionChangesCount    Int       @default(0) @map("option_changes_count")
+  timeToFirstAnswer     Int?      @map("time_to_first_answer")
+  hesitationTime        Int?      @map("hesitation_time")
+  questionOrder         Int?      @map("question_order")
+  wasFlaggedForReview   Boolean   @default(false) @map("was_flagged_for_review")
+  wasSkipped            Boolean   @default(false) @map("was_skipped")
+  confidenceLevel       Int?      @map("confidence_level")
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  test     Test     @relation("TestAttempts", fields: [testId], references: [id], onDelete: Cascade)
+  question Question @relation("QuestionAttempts", fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([testId, questionId])
+  @@map("attempts")
+}
+
+model UserPerformanceAnalytics {
+  id                          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId                      String   @map("user_id") @db.Uuid
+  domainId                    Int      @map("domain_id")
+  totalTests                  Int      @default(0) @map("total_tests")
+  totalQuestionsAttempted     Int      @default(0) @map("total_questions_attempted")
+  averageScore                Decimal  @default(0) @map("average_score") @db.Decimal(5, 2)
+  bestScore                   Decimal  @default(0) @map("best_score") @db.Decimal(5, 2)
+  latestScore                 Decimal  @default(0) @map("latest_score") @db.Decimal(5, 2)
+  overallAccuracy             Decimal  @default(0) @map("overall_accuracy") @db.Decimal(5, 2)
+  easyQuestionsAccuracy       Decimal  @default(0) @map("easy_questions_accuracy") @db.Decimal(5, 2)
+  mediumQuestionsAccuracy     Decimal  @default(0) @map("medium_questions_accuracy") @db.Decimal(5, 2)
+  hardQuestionsAccuracy       Decimal  @default(0) @map("hard_questions_accuracy") @db.Decimal(5, 2)
+  averageTimePerQuestion      Decimal  @default(0) @map("average_time_per_question") @db.Decimal(6, 2)
+  fastestCorrectAnswer        Decimal  @default(0) @map("fastest_correct_answer") @db.Decimal(6, 2)
+  improvementRate             Decimal  @default(0) @map("improvement_rate") @db.Decimal(5, 2)
+  consistencyScore            Decimal  @default(0) @map("consistency_score") @db.Decimal(3, 2)
+  learningVelocity            Decimal  @default(0) @map("learning_velocity") @db.Decimal(5, 2)
+  weakCategories              Json     @default("[]") @map("weak_categories") // JSONB
+  recommendedPracticeAreas    Json     @default("[]") @map("recommended_practice_areas") // JSONB
+  percentileRank              Decimal  @default(0) @map("percentile_rank") @db.Decimal(5, 2)
+  cohortRank                  Int?     @map("cohort_rank")
+  lastCalculatedAt            DateTime @default(now()) @map("last_calculated_at") @db.Timestamptz(6)
+  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domain Domain @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@map("user_performance_analytics")
+}
+
+model QuestionAnalytics {
+  id                        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  questionId                Int      @map("question_id")
+  totalAttempts             Int      @default(0) @map("total_attempts")
+  correctAttempts           Int      @default(0) @map("correct_attempts")
+  accuracyRate              Decimal  @default(0) @map("accuracy_rate") @db.Decimal(5, 2)
+  averageTimeSpent          Decimal  @default(0) @map("average_time_spent") @db.Decimal(6, 2)
+  medianTimeSpent           Decimal  @default(0) @map("median_time_spent") @db.Decimal(6, 2)
+  fastestCorrectTime        Decimal  @default(0) @map("fastest_correct_time") @db.Decimal(6, 2)
+  optionDistribution        Json     @default("{}") @map("option_distribution") // JSONB
+  difficultyRating          Decimal  @default(0.5) @map("difficulty_rating") @db.Decimal(3, 2)
+  discriminationIndex       Decimal  @default(0) @map("discrimination_index") @db.Decimal(3, 2)
+  reportedIssuesCount       Int      @default(0) @map("reported_issues_count")
+  averageDifficultyRating   Decimal  @default(0) @map("average_difficulty_rating") @db.Decimal(3, 2)
+  needsReview               Boolean  @default(false) @map("needs_review")
+  qualityScore              Decimal  @default(0.5) @map("quality_score") @db.Decimal(3, 2)
+  lastCalculatedAt          DateTime @default(now()) @map("last_calculated_at") @db.Timestamptz(6)
+  createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("question_analytics")
+}
+
+model PredictiveAnalytics {
+  id                         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  testId                     String   @map("test_id") @db.Uuid
+  userId                     String   @map("user_id") @db.Uuid
+  predictedFinalScore        Decimal? @map("predicted_final_score") @db.Decimal(5, 2)
+  predictionConfidence       Decimal? @map("prediction_confidence") @db.Decimal(3, 2)
+  predictionMethod           String?  @map("prediction_method")
+  questionsAnswered          Int?     @map("questions_answered")
+  currentAccuracy            Decimal? @map("current_accuracy") @db.Decimal(5, 2)
+  averageTimePerQuestion     Decimal? @map("average_time_per_question") @db.Decimal(6, 2)
+  difficultyDistribution     Json?    @map("difficulty_distribution") // JSONB
+  userHistoricalPerformance  Json?    @map("user_historical_performance") // JSONB
+  predictedAt                DateTime @default(now()) @map("predicted_at") @db.Timestamptz(6)
+  actualFinalScore           Decimal? @map("actual_final_score") @db.Decimal(5, 2)
+  predictionError            Decimal? @map("prediction_error") @db.Decimal(5, 2)
+  createdAt                  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("predictive_analytics")
+}

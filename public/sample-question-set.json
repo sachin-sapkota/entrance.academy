@@ -1,0 +1,142 @@
+[
+  {
+    "domain": "Botany",
+    "text": "Which of the following is the primary function of chloroplasts in plant cells?",
+    "options": [
+      { "text": "Protein synthesis", "image": null },
+      { "text": "Photosynthesis", "image": null },
+      { "text": "Cell division", "image": null },
+      { "text": "Respiration", "image": null }
+    ],
+    "correctAnswer": "B",
+    "explanation": "Chloroplasts are organelles that conduct photosynthesis, where the photosynthetic pigment chlorophyll captures the energy from sunlight and converts it and stores it in the energy-storage molecules ATP and NADPH.",
+    "image": null,
+    "difficulty": "easy"
+  },
+  {
+    "domain": "Zoology",
+    "text": "What is the largest organ in the human body?",
+    "options": [
+      { "text": "Liver", "image": null },
+      { "text": "Brain", "image": null },
+      { "text": "Skin", "image": null },
+      { "text": "Lungs", "image": null }
+    ],
+    "correctAnswer": "C",
+    "explanation": "The skin is the largest organ in the human body, covering the entire body surface and serving as a protective barrier against the environment.",
+    "image": null,
+    "difficulty": "easy"
+  },
+  {
+    "domain": "Physics",
+    "text": "What is the SI unit of electric current?",
+    "options": [
+      { "text": "Volt", "image": null },
+      { "text": "Ampere", "image": null },
+      { "text": "Ohm", "image": null },
+      { "text": "Watt", "image": null }
+    ],
+    "correctAnswer": "B",
+    "explanation": "The ampere (symbol: A) is the SI unit of electric current. It is named after André-Marie Ampère, a French mathematician and physicist.",
+    "image": null,
+    "difficulty": "easy"
+  },
+  {
+    "domain": "Chemistry",
+    "text": "What is the chemical symbol for gold?",
+    "options": [
+      { "text": "Go", "image": null },
+      { "text": "Gd", "image": null },
+      { "text": "Au", "image": null },
+      { "text": "Ag", "image": null }
+    ],
+    "correctAnswer": "C",
+    "explanation": "The chemical symbol for gold is Au, which comes from the Latin word 'aurum' meaning gold.",
+    "image": null,
+    "difficulty": "easy"
+  },
+  {
+    "domain": "MAT",
+    "text": "If a car travels 60 km in 1 hour, what is its speed in meters per second?",
+    "options": [
+      { "text": "16.67 m/s", "image": null },
+      { "text": "60 m/s", "image": null },
+      { "text": "1000 m/s", "image": null },
+      { "text": "3600 m/s", "image": null }
+    ],
+    "correctAnswer": "A",
+    "explanation": "To convert 60 km/h to m/s: 60 km/h = 60 × (1000 m)/(3600 s) = 60000/3600 = 16.67 m/s",
+    "image": null,
+    "difficulty": "medium"
+  },
+  {
+    "domain": "Botany",
+    "text": "Which part of the plant is responsible for water and nutrient absorption?",
+    "options": [
+      { "text": "Leaves", "image": null },
+      { "text": "Stem", "image": null },
+      { "text": "Roots", "image": null },
+      { "text": "Flowers", "image": null }
+    ],
+    "correctAnswer": "C",
+    "explanation": "Roots are the part of the plant that anchor it to the ground and absorb water and nutrients from the soil.",
+    "image": null,
+    "difficulty": "easy"
+  },
+  {
+    "domain": "Zoology",
+    "text": "How many chambers does a human heart have?",
+    "options": [
+      { "text": "2", "image": null },
+      { "text": "3", "image": null },
+      { "text": "4", "image": null },
+      { "text": "5", "image": null }
+    ],
+    "correctAnswer": "C",
+    "explanation": "The human heart has four chambers: two atria (left and right) and two ventricles (left and right).",
+    "image": null,
+    "difficulty": "easy"
+  },
+  {
+    "domain": "Physics",
+    "text": "What is the speed of light in vacuum?",
+    "options": [
+      { "text": "3 × 10⁸ m/s", "image": null },
+      { "text": "3 × 10⁶ m/s", "image": null },
+      { "text": "3 × 10¹⁰ m/s", "image": null },
+      { "text": "3 × 10⁴ m/s", "image": null }
+    ],
+    "correctAnswer": "A",
+    "explanation": "The speed of light in vacuum is approximately 3 × 10⁸ meters per second (299,792,458 m/s exactly).",
+    "image": null,
+    "difficulty": "medium"
+  },
+  {
+    "domain": "Chemistry",
+    "text": "What is the atomic number of carbon?",
+    "options": [
+      { "text": "4", "image": null },
+      { "text": "6", "image": null },
+      { "text": "8", "image": null },
+      { "text": "12", "image": null }
+    ],
+    "correctAnswer": "B",
+    "explanation": "Carbon has an atomic number of 6, meaning it has 6 protons in its nucleus.",
+    "image": null,
+    "difficulty": "easy"
+  },
+  {
+    "domain": "MAT",
+    "text": "What is 15% of 200?",
+    "options": [
+      { "text": "25", "image": null },
+      { "text": "30", "image": null },
+      { "text": "35", "image": null },
+      { "text": "40", "image": null }
+    ],
+    "correctAnswer": "B",
+    "explanation": "15% of 200 = (15/100) × 200 = 0.15 × 200 = 30",
+    "image": null,
+    "difficulty": "easy"
+  }
+] 
