@@ -1,9 +1,25 @@
 import { supabase } from './supabase';
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 
+// Helper function to safely log errors
+const safeErrorLog = (error, context = '') => {
+  if (error && typeof error === 'object') {
+    return {
+      message: error.message || 'Unknown error',
+      code: error.code || 'NO_CODE',
+      details: error.details || 'No details',
+      hint: error.hint || 'No hint',
+      context
+    };
+  }
+  return { message: String(error), context };
+};
+
 // OAuth Sign In
 export const signInWithOAuth = async (provider) => {
   try {
+    console.log(`🔄 Starting ${provider} OAuth sign-in...`);
+    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: provider,
       options: {
@@ -11,14 +27,22 @@ export const signInWithOAuth = async (provider) => {
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
-        }
+        },
+        scopes: provider === 'google' ? 'openid email profile' : undefined
       }
     });
 
-    if (error) throw error;
+    console.log(`${provider} OAuth response:`, { data, error });
+
+    if (error) {
+      console.error(`❌ ${provider} OAuth error:`, error);
+      throw error;
+    }
+
+    console.log(`✅ ${provider} OAuth redirect initiated successfully`);
     return { data, error: null };
   } catch (error) {
-    console.error(`${provider} OAuth error:`, error);
+    console.error(`❌ ${provider} OAuth error:`, error);
     return { data: null, error: error.message };
   }
 };
@@ -29,12 +53,15 @@ export const linkOAuthAccount = async (provider, providerId) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No authenticated user');
 
-    // Update user profile with provider ID
-    const updateField = provider === 'google' ? 'google_id' : 'apple_id';
+    // Update user profile with provider ID (Google only)
+    if (provider !== 'google') {
+      throw new Error('Only Google OAuth is currently supported');
+    }
+    
     const { error } = await supabase
       .from('users')
       .update({ 
-        [updateField]: providerId,
+        google_id: providerId,
         auth_provider: provider,
         updated_at: new Date().toISOString()
       })
@@ -51,22 +78,37 @@ export const linkOAuthAccount = async (provider, providerId) => {
 // Check if phone verification is required
 export const checkPhoneVerification = async (userId) => {
   try {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
     const { data: userProfile, error } = await supabase
       .from('users')
       .select('phone_verified, phone')
       .eq('id', userId)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // If user doesn't exist, phone verification is required
+      if (error.code === 'PGRST116') {
+        console.log('User profile not found, phone verification will be required');
+        return { required: true, hasPhone: false, error: null };
+      }
+      throw error;
+    }
+
+    // If user exists but phone_verified column is null/undefined, assume false
+    const phoneVerified = userProfile?.phone_verified || false;
+    const hasPhone = !!userProfile?.phone;
     
     return {
-      required: !userProfile.phone_verified,
-      hasPhone: !!userProfile.phone,
+      required: !phoneVerified,
+      hasPhone: hasPhone,
       error: null
     };
   } catch (error) {
-    console.error('Error checking phone verification:', error);
-    return { required: true, hasPhone: false, error: error.message };
+    console.error('Error checking phone verification:', safeErrorLog(error, `userId: ${userId}`));
+    return { required: true, hasPhone: false, error: error.message || 'Unknown error occurred' };
   }
 };
 
@@ -85,14 +127,22 @@ export const registerPasskey = async () => {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message);
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const error = await response.json();
+        errorMessage = error.message || error.error || errorMessage;
+      } catch (parseError) {
+        console.warn('Failed to parse error response:', parseError);
+      }
+      throw new Error(errorMessage);
     }
 
     const options = await response.json();
+    console.log('Registration options received:', options);
 
     // Start WebAuthn registration
     const credential = await startRegistration(options);
+    console.log('WebAuthn registration completed:', credential);
 
     // Verify registration with server
     const verifyResponse = await fetch('/api/auth/passkey/register-verify', {
@@ -106,8 +156,14 @@ export const registerPasskey = async () => {
     });
 
     if (!verifyResponse.ok) {
-      const error = await verifyResponse.json();
-      throw new Error(error.message);
+      let errorMessage = `HTTP ${verifyResponse.status}: ${verifyResponse.statusText}`;
+      try {
+        const error = await verifyResponse.json();
+        errorMessage = error.message || error.error || errorMessage;
+      } catch (parseError) {
+        console.warn('Failed to parse verify error response:', parseError);
+      }
+      throw new Error(errorMessage);
     }
 
     const result = await verifyResponse.json();
@@ -226,7 +282,7 @@ const getDeviceName = () => {
   
   // Try to detect device type
   if (/iPhone|iPad|iPod/.test(userAgent)) {
-    return `Apple ${platform}`;
+    return `iOS ${platform}`;
   } else if (/Android/.test(userAgent)) {
     return 'Android Device';
   } else if (/Windows/.test(userAgent)) {

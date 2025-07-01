@@ -96,6 +96,10 @@ export default function ProfilePage() {
   // Phone verification
   const [phoneVerified, setPhoneVerified] = useState(false);
 
+  // Google account data
+  const [googleData, setGoogleData] = useState(null);
+  const [isGoogleAccount, setIsGoogleAccount] = useState(false);
+
   useEffect(() => {
     if (user?.id) {
       loadUserProfile();
@@ -142,6 +146,12 @@ export default function ProfilePage() {
         
         // Set phone verification status
         setPhoneVerified(userProfile.phone_verified || false);
+
+        // Extract Google account information
+        setIsGoogleAccount(userProfile.auth_provider === 'google');
+        if (userProfile.auth_provider === 'google' && userProfile.meta_data?.google_data) {
+          setGoogleData(userProfile.meta_data.google_data);
+        }
 
         if (userProfile.ui_preferences) {
           setPreferences({
@@ -589,6 +599,20 @@ export default function ProfilePage() {
                   <div className="text-center sm:text-left flex-1">
                     <h3 className="font-semibold text-gray-900 text-lg sm:text-xl">{profileData.fullName || 'Your Name'}</h3>
                     <p className="text-gray-600 text-sm sm:text-base break-all sm:break-normal">{profileData.email}</p>
+                    {isGoogleAccount && (
+                      <div className="flex items-center justify-center sm:justify-start mt-2">
+                        <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24">
+                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        <span className="text-xs text-blue-600 font-medium">Connected with Google</span>
+                      </div>
+                    )}
+                    {currentAvatarUrl && googleData?.picture_url && currentAvatarUrl === googleData.picture_url && (
+                      <p className="text-xs text-gray-500 mt-1">Profile picture synced from Google</p>
+                    )}
                     {isEditing && (
                       <div className="mt-3 space-y-2">
                         <label className="flex items-center justify-center sm:justify-start space-x-2 text-sm text-blue-600 cursor-pointer hover:text-blue-700">
@@ -661,15 +685,15 @@ export default function ProfilePage() {
                       </div>
                     ) : (
                       isEditing ? (
-                        <input
-                          type="tel"
-                          value={profileData.phone}
-                          onChange={(e) => handleInputChange('phone', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Enter your phone number"
-                        />
-                      ) : (
-                        <p className="text-gray-900">{profileData.phone || 'Not set'}</p>
+                      <input
+                        type="tel"
+                        value={profileData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter your phone number"
+                      />
+                    ) : (
+                      <p className="text-gray-900">{profileData.phone || 'Not set'}</p>
                       )
                     )}
                   </div>
@@ -725,6 +749,92 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
+
+              {/* Google Account Information */}
+              {isGoogleAccount && googleData && (
+                <div className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      </svg>
+                      Google Account Information
+                    </h2>
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded flex items-center">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Connected
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {googleData.given_name && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                        <p className="text-gray-900">{googleData.given_name}</p>
+                      </div>
+                    )}
+                    
+                    {googleData.family_name && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                        <p className="text-gray-900">{googleData.family_name}</p>
+                      </div>
+                    )}
+                    
+                    {googleData.locale && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Language/Locale</label>
+                        <p className="text-gray-900">{googleData.locale.toUpperCase()}</p>
+                      </div>
+                    )}
+                    
+                    {googleData.verified_email !== undefined && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Email Verification</label>
+                        <p className="text-gray-900 flex items-center">
+                          {googleData.verified_email ? (
+                            <>
+                              <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                              Verified by Google
+                            </>
+                          ) : (
+                            <>
+                              <AlertCircle className="w-4 h-4 text-yellow-500 mr-2" />
+                              Not verified
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {googleData.picture_url && (
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Google Profile Picture</label>
+                        <div className="flex items-center space-x-3">
+                          <img 
+                            src={googleData.picture_url} 
+                            alt="Google profile"
+                            className="w-12 h-12 rounded-full border-2 border-gray-200"
+                          />
+                          <div className="text-sm text-gray-600">
+                            <p>Synced from your Google account</p>
+                            <p className="text-xs">Last updated: {googleData.last_sign_in_at ? new Date(googleData.last_sign_in_at).toLocaleDateString() : 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>Note:</strong> This information is automatically synced from your Google account and updates when you sign in.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Academic Information */}
               <div className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20">
@@ -928,8 +1038,8 @@ export default function ProfilePage() {
                         <div>
                           <p className="font-medium text-green-900">Phone Verified</p>
                           <p className="text-sm text-green-700">Your phone number has been verified</p>
-                        </div>
-                      </div>
+                </div>
+              </div>
                       <Check className="w-5 h-5 text-green-600" />
                     </div>
                   )}

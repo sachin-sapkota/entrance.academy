@@ -120,8 +120,8 @@ export default function QuizHeader({
             {/* Brand */}
             <div className="flex items-center">
               <div className="text-lg sm:text-xl font-semibold text-slate-800">
-                              <span className="hidden sm:inline">Entrance.academy</span>
-              <span className="sm:hidden">Entrance.academy</span>
+                              <span className="hidden sm:inline">Entrance Academy</span>
+              <span className="sm:hidden">Entrance Academy</span>
               </div>
             </div>
 

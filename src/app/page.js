@@ -456,7 +456,7 @@ function HomePage() {
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Entrance.academy
+                Entrance Academy
               </span>
             </motion.div>
             
@@ -853,7 +853,7 @@ function HomePage() {
                 <span className="bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent"> Practice Sets</span>
               </h2>
               <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-                Try our popular practice sets and experience the Entrance.academy difference.
+                Try our popular practice sets and experience the Entrance Academy difference.
               </p>
             </motion.div>
             

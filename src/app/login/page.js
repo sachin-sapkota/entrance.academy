@@ -19,6 +19,8 @@ export default function LoginPage() {
   
   const { isLoading, error, isAuthenticated, profile } = useSelector((state) => state.auth);
 
+
+
   useEffect(() => {
     if (isAuthenticated && profile) {
       if (profile.role === 'admin') {
@@ -53,12 +55,13 @@ export default function LoginPage() {
     
     try {
       const { data, error } = await signInWithOAuth(provider);
+      
       if (error) {
         dispatch(setError(error));
       }
     } catch (error) {
       console.error(`${provider} sign in error:`, error);
-      dispatch(setError(`Failed to sign in with ${provider}`));
+      dispatch(setError(`Failed to sign in with ${provider}: ${error.message}`));
     } finally {
       setLoading(false);
     }
@@ -104,7 +107,7 @@ export default function LoginPage() {
                 <span className="text-white font-bold text-sm">E</span>
               </div>
               <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-                Entrance.academy
+                Entrance Academy
               </h1>
             </motion.div>
             
@@ -252,6 +255,8 @@ export default function LoginPage() {
               </div>
             </motion.div>
 
+
+
             {/* Social Sign In */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
@@ -261,9 +266,13 @@ export default function LoginPage() {
             >
               {/* Google Sign In */}
               <button
+                type="button"
                 onClick={() => handleOAuthSignIn('google')}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white/80 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
+                style={{ zIndex: 10, position: 'relative' }}
+                className={`w-full flex items-center justify-center gap-3 px-4 py-3 bg-white/80 border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 group ${
+                  loading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md cursor-pointer'
+                }`}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -276,19 +285,7 @@ export default function LoginPage() {
                 </span>
               </button>
 
-              {/* Apple Sign In */}
-              <button
-                onClick={() => handleOAuthSignIn('apple')}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-black text-white rounded-xl hover:bg-gray-900 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-                </svg>
-                <span className="font-medium">
-                  Sign in with Apple
-                </span>
-              </button>
+
 
               {/* Passkey Sign In */}
               {showPasskey && (

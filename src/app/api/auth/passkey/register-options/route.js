@@ -24,7 +24,8 @@ export async function POST(request) {
 
     // Generate registration options
     const rpName = 'Entrance.academy';
-    const rpID = process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : 'localhost';
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const rpID = isDevelopment ? 'localhost' : (process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : 'localhost');
     const userID = userId;
     const userName = userProfile.email;
     const userDisplayName = userProfile.full_name || userProfile.email;

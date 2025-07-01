@@ -28,8 +28,8 @@ Cloudflare Workers AI offers a generous free tier with 10,000 requests per day.
    Create a `.env.local` file in your project root:
    ```
    AI_PROVIDER=cloudflare
-   CLOUDFLARE_ACCOUNT_ID=your_account_id_here
-   CLOUDFLARE_API_TOKEN=your_api_token_here
+   CLOUDFLARE_ACCOUNT_ID=27e4e1546d9d6da7c53894d468751c52
+   CLOUDFLARE_API_TOKEN=u27U1UkQ0ea7lFWw2V1UK2CRAZqGu7JS57tqxRkH
    ```
 
 ## Option 2: Using Google's Gemini API (Alternative)

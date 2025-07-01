@@ -1,10 +1,9 @@
 -- Authentication Enhancements Migration
--- This migration adds support for OAuth providers (Google, Apple) and passkey authentication
+-- This migration adds support for OAuth providers (Google) and passkey authentication
 
 -- Add authentication provider fields to users table
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS auth_provider TEXT DEFAULT 'email';
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS apple_id TEXT UNIQUE;
 
 -- Add passkey/biometric authentication fields
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS passkey_enabled BOOLEAN DEFAULT false;
@@ -18,7 +17,6 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone_locked_until TIMESTAMP W
 
 -- Create index for OAuth IDs
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON public.users(google_id) WHERE google_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_users_apple_id ON public.users(apple_id) WHERE apple_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_users_auth_provider ON public.users(auth_provider);
 
 -- Create function to generate OTP
@@ -264,6 +262,6 @@ GRANT EXECUTE ON FUNCTION add_passkey_credential(UUID, JSONB) TO authenticated;
 GRANT EXECUTE ON FUNCTION toggle_passkey(UUID, BOOLEAN) TO authenticated;
 
 -- Add comment for documentation
-COMMENT ON COLUMN public.users.auth_provider IS 'Authentication provider used: email, google, apple, passkey';
+COMMENT ON COLUMN public.users.auth_provider IS 'Authentication provider used: email, google, passkey';
 COMMENT ON COLUMN public.users.passkey_enabled IS 'Whether passkey/biometric authentication is enabled';
 COMMENT ON COLUMN public.users.passkey_credentials IS 'Array of WebAuthn credentials for passkey authentication'; 
