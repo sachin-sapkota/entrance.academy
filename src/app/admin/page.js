@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useDispatch, useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
 import {
   Users,
@@ -18,12 +19,17 @@ import {
   AlertCircle,
   FileText,
   Database,
-  Activity
+  Activity,
+  LogOut,
+  User
 } from 'lucide-react';
 import ProtectedRoute from '../components/ProtectedRoute';
+import { signOutUser } from '../../store/slices/authSlice';
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const dispatch = useDispatch();
+  const { user, profile } = useSelector((state) => state.auth);
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalPracticeSets: 0,
@@ -79,6 +85,10 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    dispatch(signOutUser());
   };
 
   if (loading) {
@@ -207,13 +217,39 @@ export default function AdminDashboard() {
                 <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
                 <p className="text-gray-600">Manage your MCQ platform</p>
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Database className="w-5 h-5 text-blue-600" />
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Database className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">Admin Panel</div>
+                    <div className="text-xs text-gray-500">Last updated: Just now</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-sm font-medium text-gray-900">Admin Panel</div>
-                  <div className="text-xs text-gray-500">Last updated: Just now</div>
+                
+                {/* User Profile & Logout */}
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-gray-900">
+                        {profile?.fullName || user?.email?.split('@')[0] || 'Admin'}
+                      </div>
+                      <div className="text-xs text-gray-500">Administrator</div>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={handleLogout}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-sm"
+                    title="Logout"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="font-medium">Logout</span>
+                  </button>
                 </div>
               </div>
             </div>

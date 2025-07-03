@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-export default function SitemapPage() {
+export default function SiteMapPage() {
   const siteStructure = {
     main: [
       { title: 'Home', url: '/', description: 'Main landing page with featured tests and announcements' },
