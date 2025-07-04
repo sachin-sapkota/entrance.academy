@@ -111,29 +111,7 @@ const nextConfig = {
     ];
   },
   
-  // Redirects for SEO
-  async redirects() {
-    return [
-      // Redirect www to non-www
-      {
-        source: '/:path*',
-        has: [
-          {
-            type: 'host',
-            value: 'www.entrance.academy',
-          },
-        ],
-        destination: 'https://entrance.academy/:path*',
-        permanent: true,
-      },
-      // Redirect old URLs to new ones (if any)
-      {
-        source: '/old-blog/:slug',
-        destination: '/blog/:slug',
-        permanent: true,
-      },
-    ];
-  },
+
   
   // Rewrites for clean URLs
   async rewrites() {
