@@ -26,9 +26,23 @@ export const supabase = (() => {
   return supabaseClientInstance;
 })();
 
+// Export supabase client instance directly (no need for createClient wrapper)
+
+// Request deduplication cache
+const requestCache = new Map();
+
 // Helper function to make authenticated API requests
 export const authenticatedFetch = async (url, options = {}) => {
   try {
+    // Create a cache key for this request
+    const cacheKey = `${options.method || 'GET'}:${url}:${JSON.stringify(options.body || '')}`;
+    
+    // Check if there's already a pending request for this URL
+    if (requestCache.has(cacheKey)) {
+      console.log('🔄 Request already in progress, waiting for existing request:', url);
+      return await requestCache.get(cacheKey);
+    }
+
     // Get current session
     const { data: { session }, error } = await supabase.auth.getSession();
     
@@ -60,39 +74,52 @@ export const authenticatedFetch = async (url, options = {}) => {
     console.log('🔐 Making authenticated request to:', url);
     console.log('🔑 Using access token:', session.access_token.substring(0, 20) + '...');
     
-    const response = await fetch(url, {
-      ...options,
-      headers
-    });
+    // Create the request promise and cache it
+    const requestPromise = (async () => {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers
+        });
 
-    // If we get a 401, the session might be invalid
-    if (response.status === 401) {
-      console.error('Received 401 Unauthorized. Session may be invalid.');
-      // Try to refresh the session
-      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-      
-      if (refreshError || !refreshedSession) {
-        console.error('Failed to refresh session:', refreshError);
-        throw new Error('Session invalid. Please log in again.');
+        // If we get a 401, the session might be invalid
+        if (response.status === 401) {
+          console.error('Received 401 Unauthorized. Session may be invalid.');
+          // Try to refresh the session
+          const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError || !refreshedSession) {
+            console.error('Failed to refresh session:', refreshError);
+            throw new Error('Session invalid. Please log in again.');
+          }
+          
+          console.log('🔄 Session refreshed, retrying request...');
+          
+          // Retry with refreshed session
+          const refreshedHeaders = {
+            'Content-Type': 'application/json',
+            ...options.headers,
+            'Authorization': `Bearer ${refreshedSession.access_token}`,
+            'X-Supabase-Auth': refreshedSession.access_token
+          };
+          
+          return fetch(url, {
+            ...options,
+            headers: refreshedHeaders
+          });
+        }
+        
+        return response;
+      } finally {
+        // Remove from cache when request completes (success or failure)
+        requestCache.delete(cacheKey);
       }
-      
-      console.log('🔄 Session refreshed, retrying request...');
-      
-      // Retry with refreshed session
-      const refreshedHeaders = {
-        'Content-Type': 'application/json',
-        ...options.headers,
-        'Authorization': `Bearer ${refreshedSession.access_token}`,
-        'X-Supabase-Auth': refreshedSession.access_token
-      };
-      
-      return fetch(url, {
-        ...options,
-        headers: refreshedHeaders
-      });
-    }
+    })();
+
+    // Cache the request promise
+    requestCache.set(cacheKey, requestPromise);
     
-    return response;
+    return await requestPromise;
   } catch (error) {
     console.error('Error making authenticated request:', error);
     throw error; // Re-throw instead of falling back to unauthenticated request

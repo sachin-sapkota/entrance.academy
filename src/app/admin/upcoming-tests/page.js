@@ -35,6 +35,7 @@ import {
   Grid
 } from 'lucide-react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
+import AdminNavbar from '@/app/components/AdminNavbar';
 
 export default function UpcomingTestsAdmin() {
   const router = useRouter();
@@ -152,6 +153,7 @@ export default function UpcomingTestsAdmin() {
   return (
     <ProtectedRoute adminOnly={true}>
       <div className="min-h-screen bg-gray-50">
+        <AdminNavbar />
         {/* Header */}
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-6 py-4">

@@ -17,6 +17,7 @@ import {
   Filter
 } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
+import AdminNavbar from '../../components/AdminNavbar';
 
 export default function QuestionSetsPage() {
   const router = useRouter();
@@ -113,6 +114,7 @@ export default function QuestionSetsPage() {
   return (
     <ProtectedRoute adminOnly={true}>
       <div className="min-h-screen bg-gray-50">
+        <AdminNavbar />
         {/* Header */}
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-6 py-4">

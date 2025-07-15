@@ -22,9 +22,12 @@ import {
   FileText,
   Globe,
   Archive,
-  AlertTriangle
+  AlertTriangle,
+  Settings,
+  ChevronDown
 } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
+import AdminNavbar from '../../components/AdminNavbar';
 
 export default function PracticeSetsPage() {
   const router = useRouter();
@@ -36,10 +39,30 @@ export default function PracticeSetsPage() {
   const [sortBy, setSortBy] = useState('recent'); // recent, title, questions
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+  const [templates, setTemplates] = useState([]);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [generatingFromTemplate, setGeneratingFromTemplate] = useState(null);
+  const [showCreateDropdown, setShowCreateDropdown] = useState(false);
 
   useEffect(() => {
     fetchPracticeSets();
+    fetchTemplates();
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showCreateDropdown && !event.target.closest('.relative')) {
+        setShowCreateDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCreateDropdown]);
 
   const fetchPracticeSets = async () => {
     try {
@@ -107,6 +130,44 @@ export default function PracticeSetsPage() {
     }
   };
 
+  const fetchTemplates = async () => {
+    try {
+      setTemplatesLoading(true);
+      const response = await fetch('/api/admin/test-configurations');
+      const data = await response.json();
+      if (data.success) {
+        setTemplates(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
+
+  const generateFromTemplate = async (templateId, customName) => {
+    setGeneratingFromTemplate(templateId);
+    try {
+      const response = await apiPost('/api/admin/practice-sets', { 
+        templateId, 
+        customName: customName || `Generated from Template - ${new Date().toLocaleDateString()}`
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert(`Practice set generated successfully with ${data.highImportanceQuestions} high importance questions!`);
+        setShowTemplateModal(false);
+        fetchPracticeSets(); // Refresh the list
+      } else {
+        alert('Failed to generate practice set from template: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Error generating from template:', error);
+      alert('Failed to generate practice set from template');
+    } finally {
+      setGeneratingFromTemplate(null);
+    }
+  };
+
   // Get unique domains for filter
   const uniqueDomains = [...new Set(practiceSets.flatMap(set => set.domains || []))];
 
@@ -156,6 +217,7 @@ export default function PracticeSetsPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
+        <AdminNavbar />
         {/* Header */}
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-6 py-4">
@@ -175,13 +237,43 @@ export default function PracticeSetsPage() {
                 </div>
               </div>
               
-              <button
-                onClick={() => router.push('/admin/practice-sets/create')}
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Create Practice Set</span>
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowCreateDropdown(!showCreateDropdown)}
+                  className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create Practice Set</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                
+                {showCreateDropdown && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          router.push('/admin/practice-sets/create');
+                          setShowCreateDropdown(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                      >
+                        <FileText className="w-4 h-4" />
+                        <span>Create from Scratch</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowTemplateModal(true);
+                          setShowCreateDropdown(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span>Generate from Template</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -496,6 +588,141 @@ export default function PracticeSetsPage() {
                 >
                   {actionLoading === showDeleteConfirm ? 'Deleting...' : 'Delete'}
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Template Selection Modal */}
+        {showTemplateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-xl max-w-4xl w-full max-h-[80vh] overflow-hidden"
+            >
+              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Generate Practice Set from Template</h2>
+                  <p className="text-sm text-gray-600">Select a test configuration template to generate a practice set</p>
+                </div>
+                <button
+                  onClick={() => setShowTemplateModal(false)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                {templatesLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading templates...</p>
+                  </div>
+                ) : templates.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Settings className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Templates Available</h3>
+                    <p className="text-gray-600 mb-4">Create test configuration templates first</p>
+                    <button
+                      onClick={() => router.push('/admin/test-configurations/create')}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                    >
+                      Create Template
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {templates.map((template) => (
+                      <motion.div
+                        key={template.id}
+                        whileHover={{ scale: 1.02 }}
+                        className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 cursor-pointer"
+                        onClick={() => generateFromTemplate(template.id)}
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-semibold text-gray-900">{template.name}</h3>
+                            <p className="text-sm text-gray-600">{template.description}</p>
+                          </div>
+                                                     <div className="flex items-center space-x-2">
+                             <span className={`px-2 py-1 text-xs rounded-full ${
+                               template.test_type === 'full_length_mock' ? 'bg-red-100 text-red-800' :
+                               template.test_type === 'subject_wise_mock' ? 'bg-blue-100 text-blue-800' :
+                               template.test_type === 'difficulty_tiered' ? 'bg-purple-100 text-purple-800' :
+                               template.test_type === 'time_speed_drill' ? 'bg-orange-100 text-orange-800' :
+                               template.test_type === 'weekly_progress' ? 'bg-green-100 text-green-800' :
+                               template.test_type === 'adaptive_mcq' ? 'bg-indigo-100 text-indigo-800' :
+                               'bg-gray-100 text-gray-800'
+                             }`}>
+                               {template.test_type === 'full_length_mock' ? 'Full-Length Mock' :
+                                template.test_type === 'subject_wise_mock' ? 'Subject-wise Mock' :
+                                template.test_type === 'difficulty_tiered' ? 'Difficulty-tiered' :
+                                template.test_type === 'time_speed_drill' ? 'Speed Drill' :
+                                template.test_type === 'weekly_progress' ? 'Weekly Progress' :
+                                template.test_type === 'adaptive_mcq' ? 'Adaptive MCQ' :
+                                template.test_type}
+                             </span>
+                             {template.is_adaptive && (
+                               <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                                 Adaptive
+                               </span>
+                             )}
+                           </div>
+                        </div>
+
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Questions:</span>
+                            <span className="font-medium">{template.total_questions}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Duration:</span>
+                            <span className="font-medium">{template.duration_minutes} minutes</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">High Importance:</span>
+                            <span className="font-medium text-orange-600">
+                              {template.min_high_importance_questions || 1}-{template.max_high_importance_questions || 3} questions
+                            </span>
+                          </div>
+                          {template.domain_distribution && (
+                            <div className="mt-2">
+                              <span className="text-gray-600 text-xs">Distribution:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {Object.entries(template.domain_distribution).map(([domain, count]) => (
+                                  <span key={domain} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                                    {domain}: {count}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mt-4 flex justify-end">
+                          <button
+                            disabled={generatingFromTemplate === template.id}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2"
+                          >
+                            {generatingFromTemplate === template.id ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                <span>Generating...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-4 h-4" />
+                                <span>Generate</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>

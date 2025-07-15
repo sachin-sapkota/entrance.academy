@@ -9,7 +9,8 @@ export default function EndTestModal({
   timeLeft, 
   answeredCount, 
   totalQuestions,
-  markedCount = 0
+  markedCount = 0,
+  isSubmitting = false // Add loading state prop
 }) {
   // Handle ESC key press
   useEffect(() => {
@@ -261,18 +262,30 @@ export default function EndTestModal({
                 
                 <motion.button
                   onClick={onConfirm}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-2xl font-semibold text-sm shadow-lg transition-all duration-200"
-                  whileHover={{ 
+                  disabled={isSubmitting}
+                  className={`flex-1 px-6 py-3 rounded-2xl font-semibold text-sm shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 ${
+                    isSubmitting 
+                      ? 'bg-gradient-to-r from-green-500 to-green-600 cursor-not-allowed' 
+                      : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
+                  } text-white`}
+                  whileHover={!isSubmitting ? { 
                     scale: 1.02, 
                     y: -1,
                     boxShadow: "0 10px 25px -5px rgba(239, 68, 68, 0.4)"
-                  }}
-                  whileTap={{ scale: 0.98 }}
+                  } : {}}
+                  whileTap={!isSubmitting ? { scale: 0.98 } : {}}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 1.1 }}
                 >
-                  Submit Test
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    'Submit Test'
+                  )}
                 </motion.button>
               </div>
             </motion.div>

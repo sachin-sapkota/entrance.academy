@@ -45,27 +45,25 @@ export default function QuizPage() {
     questionsPerPage
   } = useSelector((state) => state.quiz);
   
+  // Local state
   const [questions, setQuestions] = useState([]);
-  const [questionsLoading, setQuestionsLoading] = useState(false);
-  const [practiceSetInfo, setPracticeSetInfo] = useState(null);
-
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [examStartTime, setExamStartTime] = useState(null);
   const [currentSession, setCurrentSession] = useState(null);
+  const [questionsLoading, setQuestionsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [isRestoringSession, setIsRestoringSession] = useState(false);
-
-  // Add saving state
+  const [practiceSetInfo, setPracticeSetInfo] = useState(null);
+  const [toast, setToast] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
-  const [dataRestored, setDataRestored] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Add immediate submission loading state
 
-  // Use refs to access latest state in callbacks
-  const answersRef = useRef(answers);
-  const flaggedQuestionsRef = useRef(flaggedQuestions);
-  const currentPageRef = useRef(currentPage);
-  const timeLeftRef = useRef(timeLeft);
-  const currentSessionRef = useRef(currentSession);
+  // Refs for stable values in useCallbacks
+  const currentSessionRef = useRef(null);
+  const answersRef = useRef({});
+  const flaggedQuestionsRef = useRef([]);
+  const currentPageRef = useRef(1);
+  const timeLeftRef = useRef(7200);
 
   // Update refs when state changes
   useEffect(() => {
@@ -426,7 +424,6 @@ export default function QuizPage() {
         // Load questions
         await loadQuestions(testId);
         
-        setExamStartTime(new Date());
         setIsInitialized(true);
         
       } catch (error) {
@@ -665,6 +662,9 @@ export default function QuizPage() {
       return;
     }
 
+    // Set submitting state immediately for loading UI
+    setIsSubmitting(true);
+
     try {
       console.log('🎯 Submitting test...', { testId: currentSession.testId, userId: user.id });
 
@@ -759,6 +759,9 @@ export default function QuizPage() {
     } catch (error) {
       console.error('💥 Error submitting test:', error);
       showToast(`Failed to submit test: ${error.message}`, 'error', 5000);
+    } finally {
+      // Reset submitting state if there was an error
+      setIsSubmitting(false);
     }
   };
 
@@ -829,20 +832,28 @@ export default function QuizPage() {
   };
 
   // Loading state - also wait for session
-  if (questionsLoading || quizLoading || !isInitialized || isRestoringSession || !currentSession) {
+  if (questionsLoading || quizLoading || !isInitialized || isRestoringSession || !currentSession || isSubmitting) {
     return (
       <ProtectedRoute>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <div className={`w-12 h-12 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4 ${
+              isSubmitting ? 'border-green-500' : 'border-blue-500'
+            }`}></div>
             <p className="text-slate-600 font-medium">
-              {isRestoringSession ? 'Restoring your session...' : 
-               !currentSession ? 'Creating test session...' :
+              {isSubmitting ? 'Submitting test...' :
+               isRestoringSession ? 'Restoring your session...' : 
+               !currentSession ? 'Initializing test session...' :
                questionsLoading ? 'Loading questions...' : 'Initializing test...'}
             </p>
             {isRestoringSession && (
               <p className="text-sm text-blue-600 mt-2">
                 Your previous answers will be restored
+              </p>
+            )}
+            {isSubmitting && (
+              <p className="text-sm text-green-600 mt-2">
+                Please wait while we process your answers
               </p>
             )}
           </div>
@@ -903,6 +914,7 @@ export default function QuizPage() {
           timeLeft={timeLeft}
           onSubmit={handleSubmit}
           isSubmitted={isSubmitted}
+          isSubmitting={isSubmitting}
           answeredCount={Object.keys(answers).length}
           totalQuestions={questions.length}
           markedCount={flaggedQuestions.length}

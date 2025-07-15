@@ -247,9 +247,64 @@ export default function CreatePracticeSet() {
         console.log('Auto-save successful');
       } else {
         console.error('Auto-save failed:', data.message);
+        
+        // Handle specific error cases
+        if (data.message && data.message.includes('multiple (or no) rows returned')) {
+          console.warn('Session data corruption detected, attempting to refresh session...');
+          // Clear session and try to create a new one
+          localStorage.removeItem('practiceSetSessionId');
+          localStorage.removeItem('practiceSetId');
+          setSessionId(null);
+          setPracticeSetId(null);
+          
+          // Try to create a new session
+          try {
+            const newResponse = await apiPost('/api/admin/practice-sets/draft', {
+              title: formData.title || 'Untitled Practice Set',
+              description: formData.description || '',
+              domains: formData.domains || [],
+              testType: formData.testType || 'practice',
+              duration: formData.duration || 120,
+              totalQuestions: formData.totalQuestions || 50,
+              difficulty: formData.difficulty || 'medium',
+              passingPercentage: formData.passingPercentage || 40,
+              instructions: formData.instructions || '',
+              isFree: formData.isFree !== undefined ? formData.isFree : true,
+              price: formData.price || 0,
+              enableNegativeMarking: formData.enableNegativeMarking !== undefined ? formData.enableNegativeMarking : true,
+              negativeMarkingRatio: formData.negativeMarkingRatio || 0.25,
+              isScheduled: formData.isScheduled || false,
+              scheduledDate: formData.scheduledDate || '',
+              scheduledTime: formData.scheduledTime || '',
+              registrationDeadline: formData.registrationDeadline || '',
+              availableUntil: formData.availableUntil || ''
+            });
+            
+            const newData = await newResponse.json();
+            if (newData.success) {
+              setSessionId(newData.sessionId);
+              setPracticeSetId(newData.practiceSetId);
+              localStorage.setItem('practiceSetSessionId', newData.sessionId);
+              localStorage.setItem('practiceSetId', newData.practiceSetId);
+              console.log('New session created after corruption fix');
+            }
+          } catch (refreshError) {
+            console.error('Failed to create new session after corruption:', refreshError);
+          }
+        }
       }
     } catch (error) {
       console.error('Auto-save failed:', error);
+      
+      // Handle network or other errors
+      if (error.message && error.message.includes('multiple (or no) rows returned')) {
+        console.warn('Session data corruption detected in catch block...');
+        // Similar recovery logic as above
+        localStorage.removeItem('practiceSetSessionId');
+        localStorage.removeItem('practiceSetId');
+        setSessionId(null);
+        setPracticeSetId(null);
+      }
     } finally {
       setAutoSaving(false);
     }

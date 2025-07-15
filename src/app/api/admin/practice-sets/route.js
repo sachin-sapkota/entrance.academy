@@ -96,11 +96,13 @@ export async function GET(request) {
   }
 }
 
-// POST - Create new practice set
+// POST - Create practice set or draft session
 export async function POST(request) {
   try {
     const body = await request.json();
     const { 
+      templateId, 
+      customName,
       title, 
       description, 
       domains, 
@@ -126,13 +128,6 @@ export async function POST(request) {
       registration_deadline
     } = body;
 
-    if (!title) {
-      return NextResponse.json(
-        { success: false, message: 'Title is required' },
-        { status: 400 }
-      );
-    }
-
     // Get authenticated user
     const { user, error: authError } = await getAuthenticatedUser(request);
     
@@ -147,6 +142,19 @@ export async function POST(request) {
       return NextResponse.json(
         { success: false, message: 'Admin access required' },
         { status: 403 }
+      );
+    }
+
+    // Handle template-based practice set generation
+    if (templateId) {
+      return await generatePracticeSetFromTemplate(templateId, customName, user.id);
+    }
+
+    // Original practice set creation logic
+    if (!title) {
+      return NextResponse.json(
+        { success: false, message: 'Title is required' },
+        { status: 400 }
       );
     }
 
@@ -174,7 +182,7 @@ export async function POST(request) {
         // Negative marking fields
         enableNegativeMarking: enableNegativeMarking !== undefined ? enableNegativeMarking : true,
         negativeMarkingRatio: negativeMarkingRatio || 0.25,
-        // Marks per question (default to 1 as mentioned in issue)
+        // Marks per question
         marksPerQuestion: 1
       }
     };
@@ -193,7 +201,7 @@ export async function POST(request) {
         .insert([{
           name: title,
           description: description || '',
-          test_type: 'scheduled', // Always use 'scheduled' for scheduled tests
+          test_type: 'scheduled',
           test_category: 'practice',
           duration_minutes: duration,
           total_questions: totalQuestions,
@@ -204,7 +212,7 @@ export async function POST(request) {
           is_free: isFree,
           price: isFree ? 0 : price,
           is_public: true,
-          is_active: true, // Always true for scheduled tests so they exist in system
+          is_active: true,
           available_from: available_from,
           available_until: available_until,
           registration_deadline: registration_deadline,
@@ -214,10 +222,10 @@ export async function POST(request) {
           }, {}),
           created_by: user.id,
           meta_data: {
-            original_test_type: testType, // Store original test type
-            scheduling_status: 'scheduled', // Track that this is scheduled, not live
-            created_as_live: isLive, // Track if user intended it to be live immediately
-            questions: questions || [], // Store questions for when tests are created
+            original_test_type: testType,
+            scheduling_status: 'scheduled',
+            created_as_live: isLive,
+            questions: questions || [],
             question_ids: questions ? questions.map(q => q.id).filter(Boolean) : []
           }
         }])
@@ -290,6 +298,340 @@ export async function POST(request) {
       { status: 500 }
     );
   }
+}
+
+// Helper function to generate practice set from template
+async function generatePracticeSetFromTemplate(templateId, customName, userId) {
+  try {
+    // Get the template configuration
+    const { data: template, error: templateError } = await supabaseAdmin
+      .from('test_configurations')
+      .select('*')
+      .eq('id', templateId)
+      .eq('is_active', true)
+      .single();
+
+    if (templateError || !template) {
+      return NextResponse.json(
+        { success: false, message: 'Template not found or inactive' },
+        { status: 404 }
+      );
+    }
+
+    // Generate questions using smart algorithm
+    const selectedQuestions = await smartQuestionSelection(template);
+
+    if (!selectedQuestions || selectedQuestions.length === 0) {
+      return NextResponse.json(
+        { success: false, message: 'No questions available for the specified criteria' },
+        { status: 400 }
+      );
+    }
+
+    // Create practice set name
+    const practiceSetName = customName || `${template.name} - ${new Date().toLocaleDateString()}`;
+
+    // Create the practice set as draft
+    const { data: practiceSet, error: createError } = await supabaseAdmin
+      .from('practice_sets')
+      .insert([{
+        title: practiceSetName,
+        description: `Generated from template: ${template.name}`,
+        questions: selectedQuestions,
+        questions_count: selectedQuestions.length,
+        domains: Object.keys(template.domain_distribution || {}),
+        difficulty_level: 'mixed',
+        estimated_time_minutes: template.duration_minutes || 120,
+        passing_percentage: template.passing_percentage || 40,
+        status: 'draft',
+        is_live: false,
+        is_free: template.is_free !== false,
+        price: template.price || 0,
+        created_by: userId,
+        meta_data: {
+          generated_from_template: templateId,
+          template_name: template.name,
+          test_type: 'template_generated',
+          enable_negative_marking: template.enable_negative_marking || false,
+          negative_marking_ratio: template.negative_marking_ratio || 0.25,
+          instructions: template.instructions || '',
+          algorithm_settings: {
+            importance_weight_factor: template.importance_weight_factor,
+            min_high_importance: template.min_high_importance_questions,
+            max_high_importance: template.max_high_importance_questions
+          }
+        }
+      }])
+      .select()
+      .single();
+
+    if (createError) {
+      console.error('Error creating practice set:', createError);
+      return NextResponse.json(
+        { success: false, message: 'Failed to create practice set' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      practiceSet,
+      message: `Practice set generated successfully with ${selectedQuestions.length} questions`,
+      templateUsed: template.name,
+      highImportanceQuestions: selectedQuestions.filter(q => q.importance_points >= 8).length
+    });
+
+  } catch (error) {
+    console.error('Error generating practice set from template:', error);
+    return NextResponse.json(
+      { success: false, message: 'Failed to generate practice set' },
+      { status: 500 }
+    );
+  }
+}
+
+// Smart Question Selection Algorithm
+async function smartQuestionSelection(template) {
+  try {
+    const domainDistribution = template.domain_distribution || {};
+    const difficultyDistribution = template.difficulty_distribution || {};
+    const minHighImportance = template.min_high_importance_questions || 1;
+    const maxHighImportance = template.max_high_importance_questions || 3;
+    const importanceWeightFactor = template.importance_weight_factor || 1.5;
+    const recencyWeightFactor = template.recency_weight_factor || 0.8;
+    const avoidRecentDays = template.avoid_recent_days || 7;
+
+    let selectedQuestions = [];
+    let highImportanceCount = 0;
+    const recentDate = new Date();
+    recentDate.setDate(recentDate.getDate() - avoidRecentDays);
+
+    // For each domain, select questions according to distribution
+    for (const [domainCode, targetCount] of Object.entries(domainDistribution)) {
+      if (targetCount <= 0) continue;
+
+      // Get domain ID
+      const { data: domain, error: domainError } = await supabaseAdmin
+        .from('domains')
+        .select('id')
+        .eq('code', domainCode)
+        .single();
+
+      if (domainError || !domain) {
+        console.warn(`Domain ${domainCode} not found`);
+        continue;
+      }
+
+      // Get available questions for this domain
+      const { data: questions, error: questionsError } = await supabaseAdmin
+        .from('questions')
+        .select(`
+          id,
+          text,
+          options,
+          correct_answer,
+          explanation,
+          difficulty_level,
+          domain_id,
+          importance_points,
+          created_at,
+          updated_at
+        `)
+        .eq('domain_id', domain.id)
+        .eq('is_active', true);
+
+      if (questionsError || !questions || questions.length === 0) {
+        console.warn(`No questions available for domain ${domainCode}`);
+        continue;
+      }
+
+      // Calculate selection weights for each question
+      const questionsWithWeights = questions.map(q => {
+        let weight = 1;
+
+        // Apply importance weighting
+        const importancePoints = q.importance_points || 1;
+        if (importancePoints >= 8) { // High importance (8-10)
+          weight *= importanceWeightFactor;
+        }
+
+        // Apply recency factor (reduce weight for recently created/updated questions)
+        const questionDate = new Date(Math.max(
+          new Date(q.created_at).getTime(),
+          new Date(q.updated_at).getTime()
+        ));
+        if (questionDate > recentDate) {
+          weight *= recencyWeightFactor;
+        }
+
+        // Apply difficulty preference (slightly favor medium difficulty)
+        if (q.difficulty_level === 'medium') {
+          weight *= 1.2;
+        }
+
+        return {
+          ...q,
+          selectionWeight: weight,
+          isHighImportance: importancePoints >= 8
+        };
+      });
+
+      // Select questions for this domain
+      const domainQuestions = weightedRandomSelection(
+        questionsWithWeights,
+        targetCount,
+        { 
+          ensureHighImportance: highImportanceCount < maxHighImportance,
+          minHighImportance: Math.max(0, minHighImportance - highImportanceCount)
+        }
+      );
+
+      // Add domain information to each question
+      const questionsWithDomain = domainQuestions.map(q => ({
+        ...q,
+        domainCode: domainCode
+      }));
+
+      // Count high importance questions selected
+      highImportanceCount += domainQuestions.filter(q => q.isHighImportance).length;
+      selectedQuestions = selectedQuestions.concat(questionsWithDomain);
+    }
+
+    // Ensure we have at least the minimum high importance questions
+    if (highImportanceCount < minHighImportance) {
+      const additionalHighImportanceNeeded = minHighImportance - highImportanceCount;
+      const additionalQuestions = await selectAdditionalHighImportanceQuestions(
+        Object.keys(domainDistribution),
+        additionalHighImportanceNeeded,
+        selectedQuestions.map(q => q.id)
+      );
+      
+      // Add domain information to additional questions (use first available domain)
+      const additionalQuestionsWithDomain = additionalQuestions.map(q => ({
+        ...q,
+        domainCode: Object.keys(domainDistribution)[0] || 'UNKNOWN'
+      }));
+      
+      selectedQuestions = selectedQuestions.concat(additionalQuestionsWithDomain);
+    }
+
+    // Shuffle questions if template allows
+    if (template.shuffle_questions !== false) {
+      selectedQuestions = shuffleArray(selectedQuestions);
+    }
+
+    return selectedQuestions.map(q => ({
+      id: q.id,
+      domain: q.domainCode,
+      text: q.text,
+      options: q.options,
+      correctAnswer: q.correct_answer,
+      explanation: q.explanation,
+      difficulty: q.difficulty_level,
+      importance_points: q.importance_points || 1
+    }));
+
+  } catch (error) {
+    console.error('Error in smart question selection:', error);
+    throw error;
+  }
+}
+
+// Weighted random selection algorithm
+function weightedRandomSelection(questions, count, options = {}) {
+  if (questions.length === 0 || count <= 0) return [];
+  
+  const selected = [];
+  const available = [...questions];
+  
+  // First, select high importance questions if required
+  if (options.minHighImportance > 0) {
+    const highImportanceQuestions = available.filter(q => q.isHighImportance);
+    const highImportanceToSelect = Math.min(options.minHighImportance, highImportanceQuestions.length, count);
+    
+    for (let i = 0; i < highImportanceToSelect; i++) {
+      if (highImportanceQuestions.length === 0) break;
+      
+      const randomIndex = Math.floor(Math.random() * highImportanceQuestions.length);
+      const selectedQuestion = highImportanceQuestions.splice(randomIndex, 1)[0];
+      selected.push(selectedQuestion);
+      
+      // Remove from available pool
+      const availableIndex = available.findIndex(q => q.id === selectedQuestion.id);
+      if (availableIndex !== -1) {
+        available.splice(availableIndex, 1);
+      }
+    }
+  }
+  
+  // Select remaining questions using weighted selection
+  const remainingCount = count - selected.length;
+  for (let i = 0; i < remainingCount && available.length > 0; i++) {
+    const totalWeight = available.reduce((sum, q) => sum + q.selectionWeight, 0);
+    let randomValue = Math.random() * totalWeight;
+    
+    let selectedQuestion = null;
+    for (let j = 0; j < available.length; j++) {
+      randomValue -= available[j].selectionWeight;
+      if (randomValue <= 0) {
+        selectedQuestion = available.splice(j, 1)[0];
+        break;
+      }
+    }
+    
+    if (selectedQuestion) {
+      selected.push(selectedQuestion);
+    }
+  }
+  
+  return selected;
+}
+
+// Select additional high importance questions if needed
+async function selectAdditionalHighImportanceQuestions(domainCodes, count, excludeIds) {
+  try {
+    const { data: domains } = await supabaseAdmin
+      .from('domains')
+      .select('id')
+      .in('code', domainCodes);
+
+    if (!domains) return [];
+
+    const domainIds = domains.map(d => d.id);
+
+    const { data: questions } = await supabaseAdmin
+      .from('questions')
+      .select('*')
+      .in('domain_id', domainIds)
+      .gte('importance_points', 8)
+      .not('id', 'in', `(${excludeIds.join(',')})`)
+      .eq('is_active', true)
+      .limit(count * 2); // Get more to allow for selection
+
+    if (!questions || questions.length === 0) return [];
+
+    // Randomly select from available high importance questions
+    const shuffled = shuffleArray(questions);
+    return shuffled.slice(0, count).map(q => ({
+      ...q,
+      isHighImportance: true,
+      selectionWeight: 1
+    }));
+
+  } catch (error) {
+    console.error('Error selecting additional high importance questions:', error);
+    return [];
+  }
+}
+
+// Utility function to shuffle array
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }
 
 // PUT - Update practice set

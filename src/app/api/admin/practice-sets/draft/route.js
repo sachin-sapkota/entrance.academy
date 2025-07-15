@@ -38,18 +38,31 @@ export async function GET(request) {
       query = query.eq('id', practiceSetId);
     }
 
-    const { data: practiceSet, error } = await query
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .single();
+    console.log('GET request - Query params:', { sessionId, practiceSetId });
+    console.log('GET request - Query:', sessionId ? `session_${sessionId}` : practiceSetId);
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+    const { data: practiceSets, error } = await query
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    console.log('GET request - Query result:', { 
+      practiceSetsCount: practiceSets?.length || 0, 
+      error: error?.message,
+      practiceSetIds: practiceSets?.map(p => p.id) || []
+    });
+
+    if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json(
         { success: false, message: 'Failed to fetch draft' },
         { status: 500 }
       );
     }
+
+    // Get the most recent practice set (first one after ordering by updated_at desc)
+    const practiceSet = practiceSets && practiceSets.length > 0 ? practiceSets[0] : null;
+
+    // Error handling is now done above
 
     if (!practiceSet) {
       return NextResponse.json({
@@ -131,6 +144,20 @@ export async function POST(request) {
     // Generate session ID
     const sessionId = crypto.randomUUID();
 
+    // Clean up any existing session codes for this user to prevent duplicates
+    const { error: cleanupError } = await supabaseAdmin
+      .from('practice_sets')
+      .delete()
+      .eq('created_by', user.id)
+      .like('code', 'session_%')
+      .eq('status', 'draft')
+      .eq('questions_count', 0);
+
+    if (cleanupError) {
+      console.warn('Failed to cleanup old sessions:', cleanupError);
+      // Continue anyway, not critical
+    }
+
     // If practiceSetId is provided, start editing session
     if (practiceSetId) {
       // First try to find as practice set
@@ -195,6 +222,47 @@ export async function POST(request) {
           }
         };
 
+        // Check if session code already exists
+        const { data: existingSession, error: checkError } = await supabaseAdmin
+          .from('practice_sets')
+          .select('id, created_by')
+          .eq('code', `session_${sessionId}`)
+          .limit(1);
+
+        if (checkError) {
+          console.error('Error checking session code:', checkError);
+          return NextResponse.json(
+            { success: false, message: 'Failed to create session' },
+            { status: 500 }
+          );
+        }
+
+        if (existingSession && existingSession.length > 0) {
+          console.error('Session code collision detected:', sessionId);
+          
+          // If the existing session belongs to the same user, we can clean it up
+          if (existingSession[0].created_by === user.id) {
+            console.log('Cleaning up existing session for same user');
+            const { error: cleanupError } = await supabaseAdmin
+              .from('practice_sets')
+              .delete()
+              .eq('id', existingSession[0].id);
+
+            if (cleanupError) {
+              console.error('Failed to cleanup existing session:', cleanupError);
+              return NextResponse.json(
+                { success: false, message: 'Session creation failed, please try again' },
+                { status: 500 }
+              );
+            }
+          } else {
+            return NextResponse.json(
+              { success: false, message: 'Session creation failed, please try again' },
+              { status: 500 }
+            );
+          }
+        }
+
         // Create practice set for editing
         const { data: newPracticeSet, error: createError } = await supabaseAdmin
           .from('practice_sets')
@@ -213,6 +281,40 @@ export async function POST(request) {
         practiceSet = newPracticeSet;
         isTestConfiguration = true;
       } else {
+        // Check if this practice set already has a session code
+        if (practiceSet.code && practiceSet.code.startsWith('session_')) {
+          console.log('Practice set already has session code:', practiceSet.code);
+          
+          // Check if there are other practice sets with the same session code
+          const { data: existingSessions, error: checkError } = await supabaseAdmin
+            .from('practice_sets')
+            .select('id')
+            .eq('code', practiceSet.code)
+            .neq('id', practiceSetId);
+
+          if (checkError) {
+            console.error('Error checking existing sessions:', checkError);
+            return NextResponse.json(
+              { success: false, message: 'Failed to check existing sessions' },
+              { status: 500 }
+            );
+          }
+
+          if (existingSessions && existingSessions.length > 0) {
+            console.log('Found existing sessions with same code, cleaning up...');
+            // Delete the other sessions with the same code
+            const { error: cleanupError } = await supabaseAdmin
+              .from('practice_sets')
+              .delete()
+              .in('id', existingSessions.map(s => s.id));
+
+            if (cleanupError) {
+              console.error('Failed to cleanup existing sessions:', cleanupError);
+              // Continue anyway
+            }
+          }
+        }
+
         // Update existing practice set with session info
         const { data: updatedPracticeSet, error: updateError } = await supabaseAdmin
           .from('practice_sets')
@@ -271,6 +373,47 @@ export async function POST(request) {
         }
       });
     } else {
+          // Check if session code already exists (shouldn't happen with UUID, but just in case)
+    const { data: existingSession, error: checkError } = await supabaseAdmin
+      .from('practice_sets')
+      .select('id, created_by')
+      .eq('code', `session_${sessionId}`)
+      .limit(1);
+
+    if (checkError) {
+      console.error('Error checking session code:', checkError);
+      return NextResponse.json(
+        { success: false, message: 'Failed to create session' },
+        { status: 500 }
+      );
+    }
+
+    if (existingSession && existingSession.length > 0) {
+      console.error('Session code collision detected:', sessionId);
+      
+      // If the existing session belongs to the same user, we can clean it up
+      if (existingSession[0].created_by === user.id) {
+        console.log('Cleaning up existing session for same user');
+        const { error: cleanupError } = await supabaseAdmin
+          .from('practice_sets')
+          .delete()
+          .eq('id', existingSession[0].id);
+
+        if (cleanupError) {
+          console.error('Failed to cleanup existing session:', cleanupError);
+          return NextResponse.json(
+            { success: false, message: 'Session creation failed, please try again' },
+            { status: 500 }
+          );
+        }
+      } else {
+        return NextResponse.json(
+          { success: false, message: 'Session creation failed, please try again' },
+          { status: 500 }
+        );
+      }
+    }
+
       // Create new practice set as draft using admin client to bypass RLS
       const { data: newPracticeSet, error: practiceSetError } = await supabaseAdmin
         .from('practice_sets')
@@ -377,17 +520,22 @@ export async function PUT(request) {
     console.log('User authenticated:', user.email, 'isAdmin:', isAdmin(user));
 
     // Find practice set by sessionId in code field using admin client
-    console.log('Looking for practice set with code:', `session_${sessionId}`);
+    console.log('PUT request - Looking for practice set with code:', `session_${sessionId}`);
     
-    const { data: practiceSet, error: findError } = await supabaseAdmin
+    const { data: practiceSets, error: findError } = await supabaseAdmin
       .from('practice_sets')
       .select('*')
       .eq('code', `session_${sessionId}`)
-      .single();
+      .order('updated_at', { ascending: false })
+      .limit(1);
 
-    console.log('Practice set search result:', { practiceSet: practiceSet?.id, error: findError?.message });
+    console.log('PUT request - Practice set search result:', { 
+      practiceSetsCount: practiceSets?.length, 
+      error: findError?.message,
+      practiceSetIds: practiceSets?.map(p => p.id) || []
+    });
 
-    if (findError || !practiceSet) {
+    if (findError) {
       console.error('Find practice set error in PUT:', findError);
       
       // Let's also try to find any practice sets for this user to debug
@@ -401,6 +549,27 @@ export async function PUT(request) {
       
       return NextResponse.json(
         { success: false, message: 'Draft session expired or not found: ' + (findError?.message || 'No practice set found') },
+        { status: 404 }
+      );
+    }
+
+    // Get the most recent practice set (first one after ordering by updated_at desc)
+    const practiceSet = practiceSets && practiceSets.length > 0 ? practiceSets[0] : null;
+
+    if (!practiceSet) {
+      console.error('No practice set found for session:', sessionId);
+      
+      // Let's also try to find any practice sets for this user to debug
+      const { data: userPracticeSets } = await supabaseAdmin
+        .from('practice_sets')
+        .select('id, code, title, created_by')
+        .eq('created_by', user.id)
+        .limit(5);
+      
+      console.log('User practice sets:', userPracticeSets);
+      
+      return NextResponse.json(
+        { success: false, message: 'Draft session expired or not found: No practice set found' },
         { status: 404 }
       );
     }
@@ -539,14 +708,27 @@ export async function DELETE(request) {
     }
 
     // Use admin client to find practice set by sessionId in code field
-    const { data: practiceSet, error: findError } = await supabaseAdmin
+    const { data: practiceSets, error: findError } = await supabaseAdmin
       .from('practice_sets')
       .select('*')
       .eq('code', `session_${sessionId}`)
-      .single();
+      .order('updated_at', { ascending: false })
+      .limit(1);
 
-    if (findError || !practiceSet) {
+    if (findError) {
       console.error('Find practice set error:', findError);
+      // If no practice set found, still return success (session cleanup)
+      return NextResponse.json({
+        success: true,
+        message: 'Session ended (no active draft found)'
+      });
+    }
+
+    // Get the most recent practice set (first one after ordering by updated_at desc)
+    const practiceSet = practiceSets && practiceSets.length > 0 ? practiceSets[0] : null;
+
+    if (!practiceSet) {
+      console.error('No practice set found for session:', sessionId);
       // If no practice set found, still return success (session cleanup)
       return NextResponse.json({
         success: true,
