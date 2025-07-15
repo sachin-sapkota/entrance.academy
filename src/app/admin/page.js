@@ -24,6 +24,7 @@ import {
   User
 } from 'lucide-react';
 import ProtectedRoute from '../components/ProtectedRoute';
+import AdminNavbar from '../components/AdminNavbar';
 import { signOutUser } from '../../store/slices/authSlice';
 
 export default function AdminDashboard() {
@@ -163,10 +164,31 @@ export default function AdminDashboard() {
 
   const quickActions = [
     {
-      title: "Create Practice Set",
-      description: "Add new questions and create a practice set",
+      title: "Subdomain Management",
+      description: "Manage questions by subdomain and importance points",
+      icon: BookOpen,
+      color: "bg-emerald-600",
+      action: () => router.push('/admin/subdomains')
+    },
+    {
+      title: "Create Questions",
+      description: "Add individual questions or bulk import question banks by subdomain",
       icon: Plus,
       color: "bg-blue-600",
+      action: () => router.push('/admin/questions/create')
+    },
+    {
+      title: "Question Bank Management",
+      description: "Manage question banks organized by domain and subdomain",
+      icon: Database,
+      color: "bg-emerald-600",
+      action: () => router.push('/admin/questions')
+    },
+    {
+      title: "Create Practice Set",
+      description: "Add new questions and create a practice set",
+      icon: FileText,
+      color: "bg-cyan-600",
       action: () => router.push('/admin/practice-sets/create')
     },
     {
@@ -177,11 +199,11 @@ export default function AdminDashboard() {
       action: () => router.push('/admin/upcoming-tests')
     },
     {
-      title: "Question Sets",
-      description: "Manage 200-question sets for comprehensive tests",
-      icon: Database,
-      color: "bg-indigo-600",
-      action: () => router.push('/admin/question-sets')
+      title: "Test Configurations",
+      description: "Create and manage MBBS test templates for practice set generation",
+      icon: Settings,
+      color: "bg-purple-600",
+      action: () => router.push('/admin/test-configurations')
     },
     {
       title: "Manage Students",
@@ -209,53 +231,7 @@ export default function AdminDashboard() {
   return (
     <ProtectedRoute adminOnly={true}>
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-                <p className="text-gray-600">Manage your MCQ platform</p>
-              </div>
-              <div className="flex items-center space-x-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Database className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">Admin Panel</div>
-                    <div className="text-xs text-gray-500">Last updated: Just now</div>
-                  </div>
-                </div>
-                
-                {/* User Profile & Logout */}
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-gray-900">
-                        {profile?.fullName || user?.email?.split('@')[0] || 'Admin'}
-                      </div>
-                      <div className="text-xs text-gray-500">Administrator</div>
-                    </div>
-                  </div>
-                  
-                  <button
-                    onClick={handleLogout}
-                    className="inline-flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-sm"
-                    title="Logout"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span className="font-medium">Logout</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
+        <AdminNavbar />
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">

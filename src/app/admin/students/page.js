@@ -20,6 +20,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import ProtectedRoute from '../../components/ProtectedRoute';
+import AdminNavbar from '../../components/AdminNavbar';
 
 export default function StudentsManagement() {
   const router = useRouter();
@@ -125,6 +126,7 @@ export default function StudentsManagement() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
+        <AdminNavbar />
         {/* Header */}
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-6 py-4">

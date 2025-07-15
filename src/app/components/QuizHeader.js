@@ -12,6 +12,7 @@ export default function QuizHeader({
   totalQuestions, 
   markedCount, 
   onExitTest,
+  isSubmitting = false, // Add loading state prop
   // Mobile sidebar props
   questions = [],
   answers = {},
@@ -221,6 +222,7 @@ export default function QuizHeader({
         answeredCount={answeredCount || 0}
         totalQuestions={totalQuestions || 0}
         markedCount={markedCount || 0}
+        isSubmitting={isSubmitting}
       />
     </>
   );
