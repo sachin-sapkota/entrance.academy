@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { randomBytes } from 'crypto';
 
 // Production-grade session manager using existing test_sessions table
 class SessionManager {
@@ -10,9 +11,12 @@ class SessionManager {
     console.log('🏗️ SessionManager initialized with database persistence');
   }
 
-  // Generate proper session token
+  // Generate cryptographically secure session token
   generateSessionToken(userId, testId) {
-    return `${userId}-${testId}-${Date.now()}`;
+    // Generate 32 bytes of random data and convert to hex
+    const randomPart = randomBytes(32).toString('hex');
+    // Include user and test context for debugging but make token unpredictable
+    return `${userId}-${testId}-${randomPart}`;
   }
 
   async createSession(sessionKey, sessionData) {
