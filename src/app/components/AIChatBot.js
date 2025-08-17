@@ -12,6 +12,31 @@ import {
   Sparkles
 } from 'lucide-react';
 
+// HTML sanitization function to prevent XSS
+const sanitizeHtml = (html) => {
+  // Create a temporary div to parse and sanitize HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  
+  // Remove all script tags and event handlers
+  const scripts = tempDiv.querySelectorAll('script');
+  scripts.forEach(script => script.remove());
+  
+  // Remove all event handlers from elements
+  const allElements = tempDiv.querySelectorAll('*');
+  allElements.forEach(element => {
+    const attributes = element.attributes;
+    for (let i = attributes.length - 1; i >= 0; i--) {
+      const attr = attributes[i];
+      if (attr.name.startsWith('on') || attr.name.startsWith('javascript:')) {
+        element.removeAttribute(attr.name);
+      }
+    }
+  });
+  
+  return tempDiv.innerHTML;
+};
+
 // LaTeX rendering support
 const renderLatex = (text) => {
   // Simple LaTeX pattern matching for common expressions
@@ -81,13 +106,16 @@ const formatInlineText = (text) => {
         </strong>
       );
     }
-    // Check if part contains HTML (LaTeX rendering)
+    // Check if part contains HTML (LaTeX rendering) - SANITIZE FIRST
     if (part.includes('<span class="bg-blue-50')) {
-      return <span key={index} dangerouslySetInnerHTML={{ __html: part }} />;
+      const sanitizedPart = sanitizeHtml(part);
+      return <span key={index} dangerouslySetInnerHTML={{ __html: sanitizedPart }} />;
     }
     return part;
   });
 };
+
+
 
 const AIChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);

@@ -2,24 +2,98 @@ import { NextResponse } from 'next/server';
 import { generateRegistrationOptions } from '@simplewebauthn/server';
 import { supabaseServer } from '@/lib/supabase-server';
 
+// Simple in-memory rate limiting (in production, use Redis)
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 5;
+
+// Rate limiting function
+const checkRateLimit = (userId) => {
+  const now = Date.now();
+  const userRequests = rateLimitMap.get(userId) || [];
+  
+  // Remove old requests outside the window
+  const recentRequests = userRequests.filter(time => now - time < RATE_LIMIT_WINDOW);
+  
+  if (recentRequests.length >= MAX_REQUESTS_PER_WINDOW) {
+    return false;
+  }
+  
+  // Add current request
+  recentRequests.push(now);
+  rateLimitMap.set(userId, recentRequests);
+  
+  // Clean up old entries periodically
+  if (rateLimitMap.size > 1000) {
+    const cutoff = now - RATE_LIMIT_WINDOW;
+    for (const [key, requests] of rateLimitMap.entries()) {
+      if (requests.every(time => time < cutoff)) {
+        rateLimitMap.delete(key);
+      }
+    }
+  }
+  
+  return true;
+};
+
+// Input validation function
+const validateUserId = (userId) => {
+  if (!userId || typeof userId !== 'string') {
+    return { valid: false, error: 'User ID must be a non-empty string' };
+  }
+  
+  // Check UUID format (assuming Supabase uses UUIDs)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(userId)) {
+    return { valid: false, error: 'Invalid user ID format' };
+  }
+  
+  return { valid: true };
+};
+
 export async function POST(request) {
   try {
     const body = await request.json();
     const { userId } = body;
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+    // Input validation
+    const validation = validateUserId(userId);
+    if (!validation.valid) {
+      return NextResponse.json({ 
+        error: validation.error 
+      }, { status: 400 });
     }
 
-    // Get user info
+    // Rate limiting
+    if (!checkRateLimit(userId)) {
+      return NextResponse.json({ 
+        error: 'Too many requests. Please try again later.' 
+      }, { status: 429 });
+    }
+
+    // Get user info with proper error handling
     const { data: userProfile, error: userError } = await supabaseServer
       .from('users')
-      .select('email, full_name')
+      .select('email, full_name, passkey_enabled')
       .eq('id', userId)
       .single();
 
-    if (userError || !userProfile) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (userError) {
+      console.error('Database error:', userError);
+      return NextResponse.json({ 
+        error: 'User lookup failed' 
+      }, { status: 500 });
+    }
+
+    if (!userProfile) {
+      return NextResponse.json({ 
+        error: 'User not found' 
+      }, { status: 404 });
+    }
+
+    // Check if user already has passkeys enabled (optional security measure)
+    if (userProfile.passkey_enabled) {
+      console.log('User already has passkeys enabled:', userId);
     }
 
     // Generate registration options
@@ -80,7 +154,10 @@ export async function POST(request) {
 
     if (updateError) {
       console.error('Error storing challenge:', updateError);
-      return NextResponse.json({ error: 'Failed to generate options' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'Failed to generate options',
+        details: 'Challenge storage failed'
+      }, { status: 500 });
     }
 
     return NextResponse.json(options);
